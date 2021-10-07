@@ -4,16 +4,18 @@
 #include <stdlib.h>
 #include "symbol_table.h"
 
+int yydebug = 1;
+
 extern int yylex();
 extern int yylineno;
 
 void yyerror(const char* s) {
-	fprintf(stderr, "laplc error: %s on line %d\n", s, yylineno);
+	fprintf(stderr, "\nlaplc error: %s on line %d\n", s, yylineno);
 	exit(1);
 }
 
 void deerror(const char* s) {
-	fprintf(stderr, "laplc error: Identifier %s on line %d does not exist\n", s, yylineno);
+	fprintf(stderr, "\nlaplc error: Identifier %s on line %d does not exist\n", s, yylineno);
 	exit(1);
 }
 
