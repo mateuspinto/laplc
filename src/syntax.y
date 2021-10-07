@@ -2,10 +2,13 @@
 #define YYSTYPE char*
 #include <stdio.h>
 #include <stdlib.h>
+#include "symbol_table.h"
 
 extern int yylex();
 extern int yylineno;
 void yyerror(const char* s);
+
+SymbolTable symbolTable;
 %}
 
 %token LET
@@ -188,6 +191,10 @@ void yyerror(const char* s) {
 }
 
 int main() {
-	return yyparse();
+	SymbolTableNew(&symbolTable);
+
+	yyparse();
+
+	return SymbolTablePrint(&symbolTable);
 }
 

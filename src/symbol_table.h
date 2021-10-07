@@ -49,7 +49,7 @@ int SymbolTableNew(SymbolTable *symbolTable) {
 }
 
 int SymbolTablePrint(SymbolTable *symbolTable) {
-  printf("Identifier\n");
+  printf("\nSymbol Table:\n");
 
   for (size_t i = 0; i < SYMBOL_TABLE_SIZE; i++) {
     if (symbolTable->table[i].identifier != NULL) {
