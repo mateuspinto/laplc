@@ -141,7 +141,7 @@ uppercase_identifier {uppercase}({lowercase}|{uppercase}|{digit})*
 {value_string} {printf("lex <VALUE_STRING, %s>\n", yytext); return VALUE_STRING;}
 
 {lowercase_identifier} {printf("lex <LOWERCASE_IDENTIFIER, %s>\n", yytext); yylval = copy_semantic_value(yytext, yyleng); return LOWERCASE_IDENTIFIER;}
-{uppercase_identifier} {printf("lex <UPPERCASE_IDENTIFIER, %s>\n", yytext); return UPPERCASE_IDENTIFIER;}
+{uppercase_identifier} {printf("lex <UPPERCASE_IDENTIFIER, %s>\n", yytext); yylval = copy_semantic_value(yytext, yyleng); return UPPERCASE_IDENTIFIER;}
 
 . {printf("laplc: lexical error on line %d\n", yylineno); exit(1);}
 
