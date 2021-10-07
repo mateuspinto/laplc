@@ -84,6 +84,7 @@ list: variable_definition
 	| const_definition
 	| function_declaration
 	| data_declariation
+	| function_import
 ;
 
 vec_type: OPEN_BRACKET type_specifier SEMICOLON VALUE_INT CLOSE_BRACKET
@@ -240,6 +241,10 @@ data_declariation: DATA UPPERCASE_IDENTIFIER COLON TYPE_STRUCT DEFINITION struct
 				if(!SymbolTableExistEntry(&symbolTable, $2))
 					SymbolTableAddEntry(&symbolTable, $2);
 			}
+;
+
+
+function_import: FROM UPPERCASE_IDENTIFIER IMPORT function_definition_parameters
 ;
 
 %%
