@@ -6,7 +6,21 @@
 
 extern int yylex();
 extern int yylineno;
-void yyerror(const char* s);
+
+void yyerror(const char* s) {
+	fprintf(stderr, "laplc error: %s on line %d\n", s, yylineno);
+	exit(1);
+}
+
+void dderror(const char* s) {
+	fprintf(stderr, "laplc error: identifier %s double declared on line %d\n", s, yylineno);
+	exit(1);
+}
+
+void deerror(const char* s) {
+	fprintf(stderr, "laplc error: Identifier %s does not exist on line %d\n", s, yylineno);
+	exit(1);
+}
 
 SymbolTable symbolTable;
 %}
@@ -124,7 +138,10 @@ value: VALUE_INT
 	| struct_value
 ;
 
-parameter: LOWERCASE_IDENTIFIER
+parameter: LOWERCASE_IDENTIFIER  {
+				if(!SymbolTableEntryExists(&symbolTable, $1))
+					deerror($1);
+			}
 	| value
 	| fluent_api
 	| function_call
@@ -137,11 +154,21 @@ expression: parameter
 ;
 
 variable_definition: LET LOWERCASE_IDENTIFIER COLON type_specifier 
-		DEFINITION expression SEMICOLON {printf("%s\n", $2); free($2);}
+		DEFINITION expression SEMICOLON {
+				if(SymbolTableEntryExists(&symbolTable, $2))
+					dderror($2);
+				else
+					SymbolTableNewEntry(&symbolTable, $2);
+			}
 ;
 
 const_definition: CONST LOWERCASE_IDENTIFIER COLON type_specifier 
-		DEFINITION expression SEMICOLON
+		DEFINITION expression SEMICOLON {
+				if(SymbolTableEntryExists(&symbolTable, $2))
+					dderror($2);
+				else
+					SymbolTableNewEntry(&symbolTable, $2);
+			}
 ;
 
 guards: parameter operator parameter COLON OPEN_BRACE parameter CLOSE_BRACE SEMICOLON
@@ -162,16 +189,36 @@ function_parameters: parameter
 ;
 
 function_declaration: FUNCTION LOWERCASE_IDENTIFIER COLON OPEN_PARENTHESIS function_types CLOSE_PARENTHESIS
-		type_specifier DEFINITION function_definition SEMICOLON
+		type_specifier DEFINITION function_definition SEMICOLON {
+				if(SymbolTableEntryExists(&symbolTable, $2))
+					dderror($2);
+				else
+					SymbolTableNewEntry(&symbolTable, $2);
+			}
 ;
 
-fluent_api: PERIOD LOWERCASE_IDENTIFIER
-	| LOWERCASE_IDENTIFIER fluent_api
-	| UPPERCASE_IDENTIFIER fluent_api
+fluent_api: PERIOD LOWERCASE_IDENTIFIER {
+				if(!SymbolTableEntryExists(&symbolTable, $2))
+					deerror($2);
+			}
+	| LOWERCASE_IDENTIFIER fluent_api {
+				if(!SymbolTableEntryExists(&symbolTable, $1))
+					deerror($1);
+			}
+	| UPPERCASE_IDENTIFIER fluent_api {
+				if(!SymbolTableEntryExists(&symbolTable, $1))
+					deerror($1);
+			}
 ;
 
-function_call: fluent_api OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS
-	| LOWERCASE_IDENTIFIER OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS
+aux_function_call: fluent_api OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS
+	| LOWERCASE_IDENTIFIER OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS {
+				if(!SymbolTableEntryExists(&symbolTable, $1))
+					deerror($2);
+			}
+;
+
+function_call: aux_function_call
 ;
 
 aux_struct_definition: LOWERCASE_IDENTIFIER COLON type_specifier
@@ -181,14 +228,16 @@ aux_struct_definition: LOWERCASE_IDENTIFIER COLON type_specifier
 struct_definition: OPEN_BRACE aux_struct_definition CLOSE_BRACE
 ;
 
-data_declariation: DATA UPPERCASE_IDENTIFIER COLON TYPE_STRUCT DEFINITION struct_definition SEMICOLON
+data_declariation: DATA UPPERCASE_IDENTIFIER COLON TYPE_STRUCT DEFINITION struct_definition SEMICOLON {
+				if(SymbolTableEntryExists(&symbolTable, $2))
+					dderror($2);
+				else
+					SymbolTableNewEntry(&symbolTable, $2);
+			}
 ;
 
 %%
 
-void yyerror(const char* s) {
-	fprintf(stderr, "laplc: %s on line %d\n", s, yylineno);
-}
 
 int main() {
 	SymbolTableNew(&symbolTable);
