@@ -10,7 +10,9 @@
 char * copy_semantic_value(char * yytext, int yyleng)
 {
     char * to_bison = (char *) malloc((yyleng+1)*sizeof(char));
-    strcpy(to_bison, yytext);
+    if (to_bison!=NULL) {
+        strcpy(to_bison, yytext);
+    }
     return to_bison;
 }
 %}
