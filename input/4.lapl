@@ -1,0 +1,7 @@
+# Exemplo da criação de um tipo de dados pelo programador: criando tipo Aluno
+
+data Aluno: Struct = {nome: [Char; 120], matricula: Int};
+
+let aluno: Aluno = {nome: "Mateus Pinto da Silva", matricula: 3489};
+
+let main: Int = printLn(aluno.nome);

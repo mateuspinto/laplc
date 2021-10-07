@@ -1,0 +1,3 @@
+# Exemplo com erro léxico: Hello, World sem aspas duplas
+
+let main: Int = printLn("Hello, World!);

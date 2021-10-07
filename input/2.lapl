@@ -1,0 +1,13 @@
+# Exemplo de uma função com guardas: Cálculo do quinto elemento da sequencia de Fibonnaci
+
+function fibonnaci: (Int) Int = (n) => match
+{
+    n==0: {1};
+    n==1: {1};
+    default: {fibonnaci(n)};
+};
+
+const posicao: Int = 5;
+
+let result: Int = fibonnaci(posicao);
+let main: Int = printLn(result);
