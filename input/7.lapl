@@ -1,0 +1,8 @@
+# Exemplo de uma função: soma simples de dois termos.
+
+from Iostream import printLn
+
+function soma: (Int, Int) Int = (x, y) => {x+z};
+let x: Int = soma(3, 2);
+
+let main: Int = printLn(x);
