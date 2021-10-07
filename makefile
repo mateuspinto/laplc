@@ -22,3 +22,17 @@ run4:
 run5:
 	./laplc < input/5.lapl
 	
+run6:
+	./laplc < input/6.lapl
+	
+run7:
+	./laplc < input/7.lapl
+	
+run8:
+	./laplc < input/8.lapl
+	
+run9:
+	./laplc < input/9.lapl
+	
+run10:
+	./laplc < input/10.lapl
