@@ -1,3 +1,5 @@
 # Exemplo com erro léxico: Hello, World sem aspas duplas
 
+from Iostream import printLn
+
 let main: Int = printLn("Hello, World!);

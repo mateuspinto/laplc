@@ -1,11 +1,7 @@
 # Exemplo de uma função com guardas: Cálculo do quinto elemento da sequencia de Fibonnaci
 
-function fibonnaci: (Int) Int = (n) => match
-{
-    n==0: {1};
-    n==1: {1};
-    default: {fibonnaci(n)};
-};
+from Math import fibonnaci
+from Iostream import printLn
 
 const posicao: Int = 5;
 

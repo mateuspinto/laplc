@@ -12,12 +12,8 @@ void yyerror(const char* s) {
 	exit(1);
 }
 
-void dderror(const char* s) {
-	fprintf(stderr, "laplc error: identifier %s double declared on line %d\n", s, yylineno);
-}
-
 void deerror(const char* s) {
-	fprintf(stderr, "laplc error: Identifier %s does not exist on line %d\n", s, yylineno);
+	fprintf(stderr, "laplc error: Identifier %s on line %d does not exist\n", s, yylineno);
 	exit(1);
 }
 
@@ -141,6 +137,7 @@ value: VALUE_INT
 parameter: LOWERCASE_IDENTIFIER  {
 				if(!SymbolTableExistEntry(&symbolTable, $1))
 					deerror($1);
+				free($1);
 			}
 	| value
 	| fluent_api
@@ -157,6 +154,7 @@ variable_definition: LET LOWERCASE_IDENTIFIER COLON type_specifier
 		DEFINITION expression SEMICOLON {
 				if(!SymbolTableExistEntry(&symbolTable, $2))
 					SymbolTableAddEntry(&symbolTable, $2);
+				free($2);
 			}
 ;
 
@@ -164,6 +162,7 @@ const_definition: CONST LOWERCASE_IDENTIFIER COLON type_specifier
 		DEFINITION expression SEMICOLON {
 				if(!SymbolTableExistEntry(&symbolTable, $2))
 					SymbolTableAddEntry(&symbolTable, $2);
+				free($2);
 			}
 ;
 
@@ -180,12 +179,8 @@ function_types: type_specifier
 	| type_specifier COMMA function_types
 ;
 
-function_definition_parameters: LOWERCASE_IDENTIFIER {
-					SymbolTableAddEntry(&symbolTable, $1);
-			}
-	| LOWERCASE_IDENTIFIER COMMA function_definition_parameters {
-					SymbolTableAddEntry(&symbolTable, $1);
-			}
+function_definition_parameters: LOWERCASE_IDENTIFIER {SymbolTableAddEntry(&symbolTable, $1); free($1);}
+	| LOWERCASE_IDENTIFIER COMMA function_definition_parameters {SymbolTableAddEntry(&symbolTable, $1); free($1);}
 ;
 
 function_call_parameters: parameter
@@ -196,27 +191,32 @@ function_declaration: FUNCTION LOWERCASE_IDENTIFIER COLON OPEN_PARENTHESIS funct
 		type_specifier DEFINITION function_definition SEMICOLON {
 				if(!SymbolTableExistEntry(&symbolTable, $2))
 					SymbolTableAddEntry(&symbolTable, $2);
+				free($2);
 			}
 ;
 
 fluent_api: PERIOD LOWERCASE_IDENTIFIER {
 				if(!SymbolTableExistEntry(&symbolTable, $2))
 					deerror($2);
+				free($2);
 			}
 	| LOWERCASE_IDENTIFIER fluent_api {
 				if(!SymbolTableExistEntry(&symbolTable, $1))
 					deerror($1);
+				free($1);
 			}
 	| UPPERCASE_IDENTIFIER fluent_api {
 				if(!SymbolTableExistEntry(&symbolTable, $1))
 					deerror($1);
+				free($1);
 			}
 ;
 
 aux_function_call: fluent_api OPEN_PARENTHESIS function_call_parameters CLOSE_PARENTHESIS
 	| LOWERCASE_IDENTIFIER OPEN_PARENTHESIS function_call_parameters CLOSE_PARENTHESIS {
 				if(!SymbolTableExistEntry(&symbolTable, $1))
-					deerror($2);
+					deerror($1);
+				free($1);
 			}
 ;
 
@@ -226,11 +226,13 @@ function_call: aux_function_call
 aux_struct_definition: LOWERCASE_IDENTIFIER COLON type_specifier {
 				if(!SymbolTableExistEntry(&symbolTable, $1))
 					SymbolTableAddEntry(&symbolTable, $1);
+				free($1);
 					
 			}
 	| LOWERCASE_IDENTIFIER COLON type_specifier COMMA aux_struct_definition {
 				if(!SymbolTableExistEntry(&symbolTable, $1))
 					SymbolTableAddEntry(&symbolTable, $1);
+				free($1);
 			}
 ;
 
@@ -240,20 +242,25 @@ struct_definition: OPEN_BRACE aux_struct_definition CLOSE_BRACE
 data_declariation: DATA UPPERCASE_IDENTIFIER COLON TYPE_STRUCT DEFINITION struct_definition SEMICOLON {
 				if(!SymbolTableExistEntry(&symbolTable, $2))
 					SymbolTableAddEntry(&symbolTable, $2);
+				free($2);
 			}
 ;
 
+function_package: LOWERCASE_IDENTIFIER {SymbolTableAddEntry(&symbolTable, $1); free($1);}
+	| LOWERCASE_IDENTIFIER COMMA function_package {SymbolTableAddEntry(&symbolTable, $1); free($1);}
+;
 
-function_import: FROM UPPERCASE_IDENTIFIER IMPORT function_definition_parameters
+function_import: FROM UPPERCASE_IDENTIFIER IMPORT function_package
 ;
 
 %%
 
 int main() {
 	SymbolTableNew(&symbolTable);
-
 	yyparse();
 
-	return SymbolTablePrint(&symbolTable);
-}
+	printf("laplc: well formed program\n\n");
+	SymbolTablePrint(&symbolTable);
 
+	return 0;
+}
