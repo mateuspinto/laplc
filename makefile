@@ -1,5 +1,5 @@
 all:
-	bison -o src/yacc.tab.c -d src/syntax.y && flex -o src/lex.yy.c src/lexical.l && gcc src/yacc.tab.c src/lex.yy.c -o laplc
+	bison -o src/yacc.tab.c -d src/syntax.y && flex -o src/lex.yy.c src/lexical.l && gcc src/yacc.tab.c src/lex.yy.c -o laplc -march=native -O2 -static
 
 run:
 	./laplc

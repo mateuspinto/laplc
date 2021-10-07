@@ -92,7 +92,7 @@ type_specifier: TYPE_INT
 	| TYPE_BOOL 
 	| TYPE_STRUCT
 	| vec_type
-	| UPPERCASE_IDENTIFIER
+	| UPPERCASE_IDENTIFIER {free($1);}
 ;
 
 operator: NOT
@@ -118,8 +118,8 @@ aux_value_vec: value
 value_vec: OPEN_BRACKET aux_value_vec CLOSE_BRACKET
 ;
 
-aux_struct_value: LOWERCASE_IDENTIFIER COLON value
-	| LOWERCASE_IDENTIFIER COLON value COMMA aux_struct_value
+aux_struct_value: LOWERCASE_IDENTIFIER COLON value {free($1);}
+	| LOWERCASE_IDENTIFIER COLON value COMMA aux_struct_value {free($1);}
 ;
 
 struct_value: OPEN_BRACE aux_struct_value CLOSE_BRACE
@@ -250,7 +250,7 @@ function_package: LOWERCASE_IDENTIFIER {SymbolTableAddEntry(&symbolTable, $1); f
 	| LOWERCASE_IDENTIFIER COMMA function_package {SymbolTableAddEntry(&symbolTable, $1); free($1);}
 ;
 
-function_import: FROM UPPERCASE_IDENTIFIER IMPORT function_package
+function_import: FROM UPPERCASE_IDENTIFIER IMPORT function_package {free($2);}
 ;
 
 %%
