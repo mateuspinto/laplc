@@ -77,7 +77,7 @@ value_bool False|True
 value_char \'(.)\'
 value_string \"(.)*\"
 
-lowercase_identifier {lowercase}({lowercase}|{uppercase}|{digit}|{period})*
+lowercase_identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 uppercase_identifier {uppercase}({lowercase}|{uppercase}|{digit})*
 
 %%

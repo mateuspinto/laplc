@@ -67,6 +67,7 @@ run:
 list: variable_definition
 	| const_definition
 	| function_declaration
+	| data_declariation
 ;
 
 vec_type: OPEN_BRACKET type_specifier SEMICOLON VALUE_INT CLOSE_BRACKET
@@ -76,7 +77,9 @@ type_specifier: TYPE_INT
 	| TYPE_FLOAT
  	| TYPE_CHAR
 	| TYPE_BOOL 
+	| TYPE_STRUCT
 	| vec_type
+	| UPPERCASE_IDENTIFIER
 ;
 
 operator: NOT
@@ -102,15 +105,25 @@ aux_value_vec: value
 value_vec: OPEN_BRACKET aux_value_vec CLOSE_BRACKET
 ;
 
+aux_struct_value: LOWERCASE_IDENTIFIER COLON value
+	| LOWERCASE_IDENTIFIER COLON value COMMA aux_struct_value
+;
+
+struct_value: OPEN_BRACE aux_struct_value CLOSE_BRACE
+;
+
 value: VALUE_INT
 	| VALUE_BOOL
 	| VALUE_CHAR
 	| VALUE_FLOAT
+	| VALUE_STRING
 	| value_vec
+	| struct_value
 ;
 
 parameter: LOWERCASE_IDENTIFIER
 	| value
+	| fluent_api
 	| function_call
 ;
 
@@ -149,7 +162,22 @@ function_declaration: FUNCTION LOWERCASE_IDENTIFIER COLON OPEN_PARENTHESIS funct
 		type_specifier DEFINITION function_definition SEMICOLON
 ;
 
-function_call: LOWERCASE_IDENTIFIER OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS
+fluent_api: PERIOD LOWERCASE_IDENTIFIER
+	| LOWERCASE_IDENTIFIER fluent_api
+;
+
+function_call: fluent_api OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS
+	| LOWERCASE_IDENTIFIER OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS
+;
+
+aux_struct_definition: LOWERCASE_IDENTIFIER COLON type_specifier
+	| LOWERCASE_IDENTIFIER COLON type_specifier COMMA aux_struct_definition
+;
+
+struct_definition: OPEN_BRACE aux_struct_definition CLOSE_BRACE
+;
+
+data_declariation: DATA UPPERCASE_IDENTIFIER COLON TYPE_STRUCT DEFINITION struct_definition SEMICOLON
 ;
 
 %%
