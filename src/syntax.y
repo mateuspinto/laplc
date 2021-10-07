@@ -164,6 +164,7 @@ function_declaration: FUNCTION LOWERCASE_IDENTIFIER COLON OPEN_PARENTHESIS funct
 
 fluent_api: PERIOD LOWERCASE_IDENTIFIER
 	| LOWERCASE_IDENTIFIER fluent_api
+	| UPPERCASE_IDENTIFIER fluent_api
 ;
 
 function_call: fluent_api OPEN_PARENTHESIS function_parameters CLOSE_PARENTHESIS
