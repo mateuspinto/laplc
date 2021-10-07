@@ -4,4 +4,4 @@ from Math import fibonnaci
 from Iostream import printLn
 
 let result: Int = fibonnaci(posicao);
-let main: Int = printLn(result);
+let main: Int = printLn(result)
