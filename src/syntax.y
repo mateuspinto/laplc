@@ -21,7 +21,8 @@ typedef struct
 extern int yylex();
 extern int yylineno;
 
-Type lastType = UNDEFINED;
+SymbolTable localScope;
+SymbolTable globalScope;
 
 void yyerror(const char* s) 
 {
@@ -34,6 +35,12 @@ void deerror(const char* s)
 	fprintf(stderr, "\nlaplc error: Identifier %s on line %d does not exist\n", s, yylineno);
 	exit(1);
 }
+
+// smt_expression_error
+// laplc error: cannot operate left operand of type Int with right operand of type Float on line 5
+
+// smt_variable_error
+// laplc error: cannot define variable of type Int with value of type Float on line 5
 %}
 
 %token LET
@@ -155,7 +162,10 @@ function_call_parameters: element
 ;
 
 function_declaration: FUNCTION IDENTIFIER COLON OPEN_PARENTHESIS function_types CLOSE_PARENTHESIS
-		type_specifier DEFINITION function_definition SEMICOLON
+		type_specifier DEFINITION function_definition SEMICOLON {
+			// Do type checking
+			SymbolTableInitialize(&localScope);
+		}
 ;
 
 function_call: IDENTIFIER OPEN_PARENTHESIS function_call_parameters CLOSE_PARENTHESIS
@@ -164,6 +174,9 @@ function_call: IDENTIFIER OPEN_PARENTHESIS function_call_parameters CLOSE_PARENT
 %%
 
 int main() {
+	SymbolTableInitialize(&localScope);
+	SymbolTableInitialize(&globalScope);
+
 	yyparse();
 	printf("laplc: well formed program\n\n");
 
