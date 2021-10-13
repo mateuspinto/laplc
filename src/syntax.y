@@ -146,7 +146,11 @@ value: VALUE_INT
 	| VALUE_FLOAT
 ;
 
-element: IDENTIFIER
+element: IDENTIFIER { 
+			$$.type=SymbolTableGetVariableOrConstType(&globalScope, $1.String);
+			if($$.type==UNDEFINED)
+				deerror($1.String);
+		}
 	| value
 	| function_call
 ;
@@ -215,6 +219,7 @@ int main() {
 	yyparse();
 	printf("laplc: well formed program\n\n");
 
+	printf("Global Symbol Table:\n");
 	SymbolTablePrintf(&globalScope);
 
 	return 0;

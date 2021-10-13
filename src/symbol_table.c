@@ -177,7 +177,7 @@ Type SymbolTableGetFunctionType(SymbolTable *symbolTable, char *identifier)
 
 int SymbolTablePrintf(SymbolTable *symbolTable)
 {
-    printf("Symbol Table: <Identifier>, <Definition>, <ReturnType>, [<ArgumentTypes>*]\n");
+    printf("<Identifier>, <Definition>, <ReturnType>, [<ArgumentTypes>*]\n");
     for (size_t i = 0; i < symbolTable->next_empty_slot; i++)
     {
         SymbolTableEntryPrintf(&(symbolTable->table[i]));
