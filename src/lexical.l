@@ -1,13 +1,25 @@
 %{
-#define YYSTYPE char*
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define YY_DECL int yylex()
+#include <stdbool.h>
+#include "type.h"
 
+typedef struct
+{
+    int Int;
+    double Float;
+    bool Bool;
+    char Char;
+    char *String;
+    Type type;
+
+} SemanticValue;
+#define YYSTYPE SemanticValue
+#define YY_DECL int yylex()
 #include "yacc.tab.h"
 
-char * copy_semantic_value(char * yytext, int yyleng)
+char * copy_lexem(char * yytext, int yyleng)
 {
     char * to_bison = (char *) malloc((yyleng+1)*sizeof(char));
     if (to_bison!=NULL) {
@@ -15,6 +27,8 @@ char * copy_semantic_value(char * yytext, int yyleng)
     }
     return to_bison;
 }
+
+char * swapStringToBeCasted = NULL;
 %}
 
 %option noyywrap
@@ -120,12 +134,64 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 {and} {return AND;}
 {or} {return OR;}
 
-{value_int} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_INT;}
-{value_float} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_FLOAT;}
-{value_bool} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_BOOL;}
-{value_char} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_CHAR;}
+{value_int} {
+    yylval.type = INT;
+    swapStringToBeCasted = copy_lexem(yytext, yyleng);
+    yylval.Int = atoi(swapStringToBeCasted);
 
-{identifier} {yylval = copy_semantic_value(yytext, yyleng); return IDENTIFIER;}
+    free(swapStringToBeCasted);
+    swapStringToBeCasted = NULL;
+
+    return VALUE_INT;
+    }
+
+{value_float} {
+    yylval.type = FLOAT;
+    swapStringToBeCasted = copy_lexem(yytext, yyleng);
+    yylval.Float = strtod(swapStringToBeCasted, NULL);
+
+    free(swapStringToBeCasted);
+    swapStringToBeCasted = NULL;
+
+    return VALUE_FLOAT;
+    }
+
+{value_bool} {
+    yylval.type = BOOL;
+    swapStringToBeCasted = copy_lexem(yytext, yyleng);
+    
+    switch (strcmp(swapStringToBeCasted, "True") == 0 ? 1 : 0)
+    {
+    case 1:
+        yylval.Bool = 1;
+        break;
+
+    case 2:
+        yylval.Bool = 0;
+        break;
+
+    default:
+        break;
+    }
+
+    free(swapStringToBeCasted);
+    swapStringToBeCasted = NULL;
+
+    return VALUE_BOOL;
+    }
+
+{value_char} {
+    yylval.type = CHAR;
+    yylval.Char = yytext[1];
+
+    return VALUE_CHAR;
+    }
+
+{identifier} {
+    yylval.type = STRING;
+    yylval.String = copy_lexem(yytext, yyleng); 
+    return IDENTIFIER;
+    }
 
 . {printf("laplc: lexical error on line %d\n", yylineno); exit(1);}
 

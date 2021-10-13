@@ -1,12 +1,27 @@
 %{
-#define YYSTYPE char *
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include "symbol_table.h"
+#include "type.h"
 
-int yydebug = 1;
+typedef struct
+{
+    int Int;
+    double Float;
+    bool Bool;
+    char Char;
+    char *String;
+    Type type;
+
+} SemanticValue;
+#define YYSTYPE SemanticValue
 
 extern int yylex();
 extern int yylineno;
+
+Type lastType = UNDEFINED;
 
 void yyerror(const char* s) 
 {
@@ -74,10 +89,10 @@ statements: variable_definition
 	| function_declaration
 ;
 
-type_specifier: TYPE_INT
-	| TYPE_FLOAT
- 	| TYPE_CHAR
-	| TYPE_BOOL
+type_specifier: TYPE_INT {$$.type = INT;}
+	| TYPE_FLOAT {$$.type = FLOAT;}
+ 	| TYPE_CHAR {$$.type = CHAR;}
+	| TYPE_BOOL {$$.type = BOOL;}
 ;
 
 operator: NOT
@@ -108,12 +123,16 @@ element: IDENTIFIER
 ;
 
 expression: element
-	| element operator expression
+	| element operator expression {
+		if($1.type!=$3.type) printf("erro de tipos\n");
+	}
 	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS operator expression
 ;
 
 variable_definition: LET IDENTIFIER COLON type_specifier 
-		DEFINITION expression SEMICOLON
+		DEFINITION expression SEMICOLON {
+			if($4.type!=$6.type) printf("erro %d, %d\n", $4.type, $6.type);
+		}
 ;
 
 const_definition: CONST IDENTIFIER COLON type_specifier 
