@@ -23,12 +23,6 @@ char * copy_semantic_value(char * yytext, int yyleng)
 let let
 const const
 function function
-import import 
-as as
-from from
-match match
-data data
-default default
 
 type_int Int
 type_float Float
@@ -79,8 +73,7 @@ value_bool False|True
 value_char \'(.)\'
 value_string \"(.)*\"
 
-lowercase_identifier {lowercase}({lowercase}|{uppercase}|{digit})*
-uppercase_identifier {uppercase}({lowercase}|{uppercase}|{digit})*
+identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 
 %%
 "#"(.)*\n {}
@@ -89,18 +82,11 @@ uppercase_identifier {uppercase}({lowercase}|{uppercase}|{digit})*
 {let} {return LET;}
 {const} {return CONST;}
 {function} {return FUNCTION;}
-{import} {return IMPORT;}
-{as} {return AS;}
-{from} {return FROM;}
-{match} {return MATCH;}
-{data} {return DATA;}
-{default} {return DEFAULT;}
 
 {type_int} {return TYPE_INT;}
 {type_float} {return TYPE_FLOAT;}
 {type_char} {return TYPE_CHAR;}
 {type_bool} {return TYPE_BOOL;}
-{type_struct} {return TYPE_STRUCT;}
 
 {open_parenthesis} {return OPEN_PARENTHESIS;}
 {close_parenthesis} {return CLOSE_PARENTHESIS;}
@@ -134,14 +120,12 @@ uppercase_identifier {uppercase}({lowercase}|{uppercase}|{digit})*
 {and} {return AND;}
 {or} {return OR;}
 
-{value_int} {return VALUE_INT;}
-{value_float} {return VALUE_FLOAT;}
-{value_bool} {return VALUE_BOOL;}
-{value_char} {return VALUE_CHAR;}
-{value_string} {return VALUE_STRING;}
+{value_int} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_INT;}
+{value_float} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_FLOAT;}
+{value_bool} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_BOOL;}
+{value_char} {yylval = copy_semantic_value(yytext, yyleng); return VALUE_CHAR;}
 
-{lowercase_identifier} {yylval = copy_semantic_value(yytext, yyleng); return LOWERCASE_IDENTIFIER;}
-{uppercase_identifier} {yylval = copy_semantic_value(yytext, yyleng); return UPPERCASE_IDENTIFIER;}
+{identifier} {yylval = copy_semantic_value(yytext, yyleng); return IDENTIFIER;}
 
 . {printf("laplc: lexical error on line %d\n", yylineno); exit(1);}
 
