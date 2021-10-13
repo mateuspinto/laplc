@@ -32,8 +32,30 @@ void yyerror(const char* s)
 
 void deerror(const char* s) 
 {
-	fprintf(stderr, "\nlaplc error: Identifier %s on line %d does not exist\n", s, yylineno);
+	fprintf(stderr, "\nlaplc error: Syntax error, identifier %s on line %d does not exist\n", s, yylineno);
 	exit(1);
+}
+
+void dderror(const char* s) 
+{
+	fprintf(stderr, "\nlaplc error: Syntax error, identifier %s on line %d is double declared\n", s, yylineno);
+	exit(1);
+}
+
+void typeerror(Type s, Type z) 
+{
+	printf("laplc error: Semantic error, cannot operate left operand of type ");
+	TypePrintf(s);
+	printf(" with right operand of type ");
+	TypePrintf(z);
+	printf(" on line %d\n", yylineno);
+	
+	exit(1);
+}
+
+int type_check(Type a, Type b)
+{
+	return (a!=b);
 }
 
 // smt_expression_error
@@ -131,19 +153,32 @@ element: IDENTIFIER
 
 expression: element
 	| element operator expression {
-		if($1.type!=$3.type) printf("erro de tipos\n");
+		if(type_check($1.type, $3.type)) typeerror($1.type, $2.type);
+		$$.type=$1.type;
 	}
-	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS operator expression
+	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS {$$.type=$2.type;}
+	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS operator expression {
+		if(type_check($2.type, $5.type)) typeerror($2.type, $5.type);
+		$$.type=$2.type;
+	}
 ;
 
 variable_definition: LET IDENTIFIER COLON type_specifier 
 		DEFINITION expression SEMICOLON {
-			if($4.type!=$6.type) printf("erro %d, %d\n", $4.type, $6.type);
+			if($4.type!=$6.type) typeerror($4.type, $6.type);
+			if(SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED)
+				dderror($2.String);
+			SymbolTableAddConst(&globalScope, $2.String, $4.type);
 		}
 ;
 
 const_definition: CONST IDENTIFIER COLON type_specifier 
-		DEFINITION expression SEMICOLON
+		DEFINITION expression SEMICOLON  {
+			if($4.type!=$6.type) typeerror($4.type, $6.type);
+			if(SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED)
+				dderror($2.String);
+			SymbolTableAddConst(&globalScope, $2.String, $4.type);
+		}
 ;
 
 function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE expression CLOSE_BRACE
@@ -179,6 +214,8 @@ int main() {
 
 	yyparse();
 	printf("laplc: well formed program\n\n");
+
+	SymbolTablePrintf(&globalScope);
 
 	return 0;
 }
