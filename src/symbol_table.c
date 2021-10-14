@@ -5,19 +5,16 @@ int SymbolTableDefinitionPrintf(SymbolTableDefinition symbolTableDefinition)
     switch (symbolTableDefinition)
     {
     case STD_LET:
-        printf("Let");
-        break;
+        return printf("Let");
 
     case STD_CONST:
-        printf("Const");
-        break;
+        return printf("Const");
 
     case STD_FUNCTION:
-        printf("Function");
-        break;
+        return printf("Function");
 
     default:
-        break;
+        return 1;
     }
 }
 
@@ -59,24 +56,19 @@ int SymbolTableEntrySetConst(SymbolTableEntry *symbolTableEntry, char *identifie
     return 0;
 }
 
-int SymbolTableEntrySetFunction(SymbolTableEntry *symbolTableEntry, char *identifier, Type returnType, Type *argumentTypes)
+int SymbolTableEntryAddFunctionArgumentType(SymbolTableEntry *symbolTableEntry, Type argumentType)
 {
-    int argumentNumber = 0;
+    symbolTableEntry->argumentTypes[symbolTableEntry->argumentNumber] = argumentType;
+    symbolTableEntry->argumentNumber++;
 
+    return 0;
+}
+
+int SymbolTableEntryFinishAddFunction(SymbolTableEntry *symbolTableEntry, char *identifier, Type returnType)
+{
     strcpy(symbolTableEntry->identifier, identifier);
-
     symbolTableEntry->returnType = returnType;
     symbolTableEntry->definiton = STD_FUNCTION;
-
-    for (size_t i = 0; i < MAX_ARGUMENT_NUMBER; i++)
-    {
-        if (argumentTypes[i] != UNDEFINED)
-            argumentNumber++;
-
-        symbolTableEntry->argumentTypes[i] = argumentTypes[i];
-    }
-
-    symbolTableEntry->argumentNumber = argumentNumber;
 
     return 0;
 }
@@ -123,6 +115,8 @@ int SymbolTableAddLet(SymbolTable *symbolTable, char *identifier, Type type)
 
     SymbolTableEntrySetLet(symbolTable->table + symbolTable->next_empty_slot, identifier, type);
     symbolTable->next_empty_slot++;
+
+    return 0;
 }
 
 int SymbolTableAddConst(SymbolTable *symbolTable, char *identifier, Type type)
@@ -135,9 +129,16 @@ int SymbolTableAddConst(SymbolTable *symbolTable, char *identifier, Type type)
 
     SymbolTableEntrySetConst(symbolTable->table + symbolTable->next_empty_slot, identifier, type);
     symbolTable->next_empty_slot++;
+
+    return 0;
 }
 
-int SymbolTableAddFunction(SymbolTable *symbolTable, char *identifier, Type returnType, Type *argumentTypes)
+int SymbolTableAddFunctionArgumentType(SymbolTable *symbolTable, Type argumentType)
+{
+    return SymbolTableEntryAddFunctionArgumentType(symbolTable->table + symbolTable->next_empty_slot, argumentType);
+}
+
+int SymbolTableFinishAddFunction(SymbolTable *symbolTable, char *identifier, Type returnType)
 {
     if (symbolTable->next_empty_slot == SYMBOL_TABLE_SIZE)
     {
@@ -145,8 +146,10 @@ int SymbolTableAddFunction(SymbolTable *symbolTable, char *identifier, Type retu
         exit(1);
     }
 
-    SymbolTableEntrySetFunction(symbolTable->table + symbolTable->next_empty_slot, identifier, returnType, argumentTypes);
+    SymbolTableEntryFinishAddFunction(symbolTable->table + symbolTable->next_empty_slot, identifier, returnType);
     symbolTable->next_empty_slot++;
+
+    return 0;
 }
 
 Type SymbolTableGetVariableOrConstType(SymbolTable *symbolTable, char *identifier)
@@ -162,7 +165,7 @@ Type SymbolTableGetVariableOrConstType(SymbolTable *symbolTable, char *identifie
     return UNDEFINED;
 }
 
-Type SymbolTableGetFunctionType(SymbolTable *symbolTable, char *identifier)
+Type SymbolTableGetFunctionReturnType(SymbolTable *symbolTable, char *identifier)
 {
     for (size_t i = 0; i < SYMBOL_TABLE_SIZE; i++)
     {
@@ -175,6 +178,29 @@ Type SymbolTableGetFunctionType(SymbolTable *symbolTable, char *identifier)
     return UNDEFINED;
 }
 
+int SymbolTableTestFunctionArgumentTypes(SymbolTable *symbolTable, char *identifier, Type *argumentTypes, int argumentNumber)
+{ // (-1) Okay, (-2) Number of arguments incorrect, (-3) Function does not exist, (N) Type error of argument N
+
+    for (size_t i = 0; i < SYMBOL_TABLE_SIZE; i++)
+    {
+        if ((strcmp((symbolTable->table + i)->identifier, identifier) == 0 ? 1 : 0) && ((symbolTable->table + i)->definiton == STD_FUNCTION))
+        {
+            if ((symbolTable->table)->argumentNumber != argumentNumber)
+                return -2;
+
+            for (size_t j = 0; j < argumentNumber; j++)
+            {
+                if ((symbolTable->table + i)->argumentTypes[j] != argumentTypes[j])
+                    return j;
+            }
+
+            return -1;
+        }
+    }
+
+    return -3;
+}
+
 int SymbolTablePrintf(SymbolTable *symbolTable)
 {
     printf("<Identifier>, <Definition>, <ReturnType>, [<ArgumentTypes>*]\n");
@@ -182,5 +208,6 @@ int SymbolTablePrintf(SymbolTable *symbolTable)
     {
         SymbolTableEntryPrintf(&(symbolTable->table[i]));
     }
+
     return 0;
 }

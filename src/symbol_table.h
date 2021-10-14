@@ -33,24 +33,31 @@ typedef struct
 } SymbolTableEntry;
 
 int SymbolTableEntryInitialize(SymbolTableEntry *symbolTableEntry);
+int SymbolTableEntryPrintf(SymbolTableEntry *symbolTableEntry);
+
 int SymbolTableEntrySetLet(SymbolTableEntry *symbolTableEntry, char *identifier, Type type);
 int SymbolTableEntrySetConst(SymbolTableEntry *symbolTableEntry, char *identifier, Type type);
+
 int SymbolTableEntrySetFunction(SymbolTableEntry *symbolTableEntry, char *identifier, Type returnType, Type *argumentTypes);
-int SymbolTableEntryPrintf(SymbolTableEntry *symbolTableEntry);
+int SymbolTableEntryAddFunctionArgumentType(SymbolTableEntry *symbolTableEntry, Type argumentType);
 
 typedef struct
 {
   SymbolTableEntry table[SYMBOL_TABLE_SIZE];
-
   size_t next_empty_slot;
 } SymbolTable;
 
 int SymbolTableInitialize(SymbolTable *symbolTable);
+int SymbolTablePrintf(SymbolTable *symbolTable);
+
 int SymbolTableAddLet(SymbolTable *symbolTable, char *identifier, Type type);
 int SymbolTableAddConst(SymbolTable *symbolTable, char *identifier, Type type);
-int SymbolTableAddFunction(SymbolTable *symbolTable, char *identifier, Type returnType, Type *argumentTypes);
 Type SymbolTableGetVariableOrConstType(SymbolTable *symbolTable, char *identifier);
-Type SymbolTableGetFunctionType(SymbolTable *symbolTable, char *identifier);
-int SymbolTablePrintf(SymbolTable *symbolTable);
+
+int SymbolTableAddFunctionArgumentType(SymbolTable *symbolTable, Type argumentType);
+int SymbolTableFinishAddFunction(SymbolTable *symbolTable, char *identifier, Type returnType);
+
+Type SymbolTableGetFunctionReturnType(SymbolTable *symbolTable, char *identifier);
+int SymbolTableTestFunctionArgumentTypes(SymbolTable *symbolTable, char *identifier, Type *argumentTypes, int argumentNumber);
 
 #endif

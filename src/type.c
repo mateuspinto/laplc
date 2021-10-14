@@ -5,22 +5,18 @@ int TypePrintf(Type symbolTableType)
     switch (symbolTableType)
     {
     case INT:
-        printf("Int");
-        break;
+        return printf("Int");
 
     case FLOAT:
-        printf("Float");
-        break;
+        return printf("Float");
 
     case CHAR:
-        printf("Char");
-        break;
+        return printf("Char");
 
     case BOOL:
-        printf("Bool");
-        break;
+        return printf("Bool");
 
     default:
-        break;
+        return 1;
     }
 }
