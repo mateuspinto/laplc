@@ -9,7 +9,7 @@ int TypePrintf(Type symbolTableType)
         break;
 
     case FLOAT:
-        printf("Flot");
+        printf("Float");
         break;
 
     case CHAR:
