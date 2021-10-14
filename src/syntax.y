@@ -5,13 +5,9 @@
 #include <string.h>
 #include "symbol_table.h"
 #include "type.h"
+#include "semantic_value.h"
+#include "error_messages.h"
 
-typedef struct
-{
-    char String[64];
-    Type type;
-
-} SemanticValue;
 #define YYSTYPE SemanticValue
 
 extern int yylex();
@@ -20,16 +16,15 @@ extern int yylineno;
 SymbolTable localScope;
 SymbolTable globalScope;
 
-Type vecTypes[MAX_ARGUMENT_NUMBER];
-int numeroArgumentos;
-int identifierNumber;
-int actualTempVar;
-int functionExpressionCounter;
+Type argumentTypes[MAX_ARGUMENT_NUMBER];
+int parameterTypeCounter;
+int parameterIdentifierCounter;
+int globalTempVariableCounter;
+int localTempVariableCounter;
 
+int functionExpressionCounter;
 char functionDefinitionBuffer[64][64];
 char functionExpressionBuffer[64][64];
-
-int localActualTempVar;
 
 void yyerror(const char* s) 
 {
@@ -37,47 +32,13 @@ void yyerror(const char* s)
 	exit(1);
 }
 
-void deerror(const char* s) 
-{
-	fprintf(stderr, "\nlaplc error: Syntax error, identifier %s on line %d does not exist\n", s, yylineno);
-	exit(1);
-}
-
-void dderror(const char* s) 
-{
-	fprintf(stderr, "\nlaplc error: Syntax error, identifier %s on line %d is double declared\n", s, yylineno);
-	exit(1);
-}
-
-void typeerror(Type s, Type z) 
-{
-	printf("laplc error: Semantic error, cannot operate left operand of type ");
-	TypePrintf(s);
-	printf(" with right operand of type ");
-	TypePrintf(z);
-	printf(" on line %d\n", yylineno);
-	
-	exit(1);
-}
-
-int type_check(Type a, Type b)
-{
-	return (a!=b);
-}
-
-void resetVecTypes(Type *vec)
+void resetArgumentTypes(Type *vec)
 {
 	for (size_t i = 0; i < MAX_ARGUMENT_NUMBER; i++)
     {
         vec[i] = UNDEFINED;
     }	
 }
-
-// smt_expression_error
-// laplc error: cannot operate left operand of type Int with right operand of type Float on line 5
-
-// smt_variable_error
-// laplc error: cannot define variable of type Int with value of type Float on line 5
 %}
 
 %token LET
@@ -141,20 +102,20 @@ type_specifier: TYPE_INT {$$.type = INT;}
 	| TYPE_BOOL {$$.type = BOOL;}
 ;
 
-operator: NOT
+operator: NOT {strcpy($$.String, "not");}
 	| PLUS {strcpy($$.String, "add");}
-	| MINUS
-	| DIVISION
-	| MULTIPLICATION
-	| MOD
-	| EQUAL
-	| NOT_EQUAL
-	| GREATER
-	| LESS
-	| GREATER_OR_EQUAL
-	| LESS_OR_EQUAL
-	| AND
-	| OR
+	| MINUS {strcpy($$.String, "sub");}
+	| DIVISION {strcpy($$.String, "div");}
+	| MULTIPLICATION {strcpy($$.String, "mul");}
+	| MOD {strcpy($$.String, "mod");}
+	| EQUAL {strcpy($$.String, "eq");}
+	| NOT_EQUAL {strcpy($$.String, "ne");}
+	| GREATER {strcpy($$.String, "gt");}
+	| LESS {strcpy($$.String, "lt");}
+	| GREATER_OR_EQUAL {strcpy($$.String, "ge");}
+	| LESS_OR_EQUAL {strcpy($$.String, "le");}
+	| AND {strcpy($$.String, "and");}
+	| OR {strcpy($$.String, "add");}
 ;
 
 value: VALUE_INT
@@ -165,167 +126,191 @@ value: VALUE_INT
 
 element: IDENTIFIER { 
 			$$.type=SymbolTableGetVariableOrConstType(&globalScope, $1.String);
-			if($$.type==UNDEFINED)
-				deerror($1.String);
+			if ($$.type==UNDEFINED) ErrorMessageVariableOrConstDoesNotExist($1.String, yylineno);
 			strcpy($$.String, $1.String);
-			
-		}
+	}
 	| value
 	| function_call { 
 			$$.type=SymbolTableGetFunctionReturnType(&globalScope, $1.String);
-			if($$.type==UNDEFINED)
-				deerror($1.String);
-		}
+			if ($$.type==UNDEFINED) ErrorMessageFunctionDoesNotExist($1.String, yylineno);
+	}
 ;
 
 expression: element
 	| element operator expression {
-		if(type_check($1.type, $3.type)) typeerror($1.type, $3.type);
+		if ($1.type!=$3.type) ErrorMessageExpressionTypeError($1.type, $3.type, yylineno);
 		$$.type=$1.type;
-		sprintf($$.String, "_t%d", actualTempVar);
+		sprintf($$.String, "_t%d", globalTempVariableCounter);
 		printf("%s %s, %s, %s;\n", $2.String, $$.String, $1.String, $3.String);
-		actualTempVar++;
+		globalTempVariableCounter++;
 	}
-	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS {$$.type=$2.type;strcpy($$.String, $2.String);}
-	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS operator expression {
-		if(type_check($2.type, $5.type)) typeerror($2.type, $5.type);
+	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS {
 		$$.type=$2.type;
-		sprintf($$.String, "_t%d", actualTempVar);
+		strcpy($$.String, $2.String);
+	}
+	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS operator expression {
+		if ($2.type!=$5.type) ErrorMessageExpressionTypeError($2.type, $5.type, yylineno);
+		$$.type=$2.type;
+		sprintf($$.String, "_t%d", globalTempVariableCounter);
 		printf("%s %s, %s, %s;\n", $4.String, $$.String, $2.String, $5.String);
-		actualTempVar++;
+		globalTempVariableCounter++;
 	}
 ;
 
 function_element: IDENTIFIER { 
 			$$.type=SymbolTableGetVariableOrConstType(&localScope, $1.String);
-			if($$.type==UNDEFINED)
-				deerror($1.String);
+			if ($$.type==UNDEFINED) ErrorMessageVariableOrConstDoesNotExist($1.String, yylineno);
+			
+			// Concating _f to function variables
 			strcpy($$.String, "_f");
 			for(size_t i=0; i<62; i++){
 				$$.String[i+2]=$1.String[i];
 			}
-			
-		}
+	}
 	| value
 ;
 
 function_expression: function_element
 	| function_element operator function_expression {
-		if(type_check($1.type, $3.type)) typeerror($1.type, $3.type);
+		if ($1.type!=$3.type) ErrorMessageExpressionTypeError($1.type, $3.type, yylineno);
 		$$.type=$1.type;
-		sprintf($$.String, "_t%d", localActualTempVar);
-		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localActualTempVar, $1.String, $3.String);
-		localActualTempVar++;
+		sprintf($$.String, "_t%d", localTempVariableCounter);
+		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+		localTempVariableCounter++;
 		functionExpressionCounter++;
-		actualTempVar++;
 	}
-	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS {$$.type=$2.type;strcpy($$.String, $2.String);}
-	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS operator function_expression {
-		if(type_check($2.type, $5.type)) typeerror($2.type, $5.type);
+	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS {
 		$$.type=$2.type;
-		sprintf($$.String, "_t%d", localActualTempVar);
-		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localActualTempVar, $1.String, $3.String);
-		localActualTempVar++;
+		strcpy($$.String, $2.String);
+	}
+	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS operator function_expression {
+		if ($2.type!=$5.type) ErrorMessageExpressionTypeError($2.type, $5.type, yylineno);
+		$$.type=$2.type;
+		sprintf($$.String, "_t%d", localTempVariableCounter);
+		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+		localTempVariableCounter++;
 		functionExpressionCounter++;
-		actualTempVar++;
 	}
 ;
 
-variable_definition: LET IDENTIFIER COLON type_specifier 
-		DEFINITION expression SEMICOLON {
-			if($4.type!=$6.type) typeerror($4.type, $6.type);
-			if(SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED)
-				dderror($2.String);
+variable_definition: LET IDENTIFIER COLON type_specifier DEFINITION expression SEMICOLON {
+			if ($4.type!=$6.type) ErrorMessageExpressionTypeError($4.type, $6.type, yylineno);
+			if (SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED) ErrorMessageVariableOrConstDoubleDeclaration($2.String, yylineno);
 			SymbolTableAddLet(&globalScope, $2.String, $4.type);
 			printf("mov %s, %s;\n", $2.String, $6.String);
-		}
+	}
 ;
 
 const_definition: CONST IDENTIFIER COLON type_specifier 
 		DEFINITION expression SEMICOLON  {
-			if($4.type!=$6.type) typeerror($4.type, $6.type);
-			if(SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED)
-				dderror($2.String);
+			if ($4.type!=$6.type) ErrorMessageExpressionTypeError($4.type, $6.type, yylineno);
+			if (SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED) ErrorMessageVariableOrConstDoubleDeclaration($2.String, yylineno);
 			SymbolTableAddConst(&globalScope, $2.String, $4.type);
 			printf("mov %s, %s;\n", $2.String, $6.String);
-		}
+	}
 ;
 
 guards: function_element operator function_element COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON {$$.type=$6.type;}
 	| DEFAULT COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON {$$.type=$4.type;}
 	| function_element operator function_element COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON guards {
-			if($9.type!=$6.type)
-				typeerror($9.type, $6.type);
+			if ($9.type!=$6.type) ErrorMessageExpressionTypeError($9.type, $6.type, yylineno);
 			$$.type=$5.type;
-		}
+	}
 ;
 
-function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE function_expression CLOSE_BRACE {$$.type=$6.type; strcpy($$.String, $6.String);}
+function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE function_expression CLOSE_BRACE {
+	$$.type=$6.type;
+	strcpy($$.String, $6.String);
+	}
 	| OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW MATCH OPEN_BRACE guards CLOSE_BRACE {$$.type=$7.type;}
 ;
 
-function_types: type_specifier {SymbolTableAddFunctionArgumentType(&globalScope, $1.type); vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
-	| type_specifier COMMA function_types {SymbolTableAddFunctionArgumentType(&globalScope, $1.type); vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
+function_types: type_specifier {
+		SymbolTableAddFunctionArgumentType(&globalScope, $1.type);
+		argumentTypes[parameterTypeCounter]=$1.type;
+		parameterTypeCounter++;
+	}
+	| type_specifier COMMA function_types {
+		SymbolTableAddFunctionArgumentType(&globalScope, $1.type);
+		argumentTypes[parameterTypeCounter]=$1.type;
+		parameterTypeCounter++;
+	}
 ;
 
 function_definition_parameters: IDENTIFIER {
-			SymbolTableAddLet(&localScope, $1.String, vecTypes[identifierNumber]);
-			sprintf(functionDefinitionBuffer[identifierNumber], "mov _f%s, _a%d;\n", $1.String, identifierNumber);
-			identifierNumber++;
+			SymbolTableAddLet(&localScope, $1.String, argumentTypes[parameterIdentifierCounter]);
+			sprintf(functionDefinitionBuffer[parameterIdentifierCounter], "mov _f%s, _a%d;\n", $1.String, parameterIdentifierCounter);
+			parameterIdentifierCounter++;
 		}
 	| IDENTIFIER COMMA function_definition_parameters {
-			SymbolTableAddLet(&localScope, $1.String, vecTypes[identifierNumber]);
-			sprintf(functionDefinitionBuffer[identifierNumber], "mov _f%s, _a%d;\n", $1.String, identifierNumber);
-			identifierNumber++;
+			SymbolTableAddLet(&localScope, $1.String, argumentTypes[parameterIdentifierCounter]);
+			sprintf(functionDefinitionBuffer[parameterIdentifierCounter], "mov _f%s, _a%d;\n", $1.String, parameterIdentifierCounter);
+			parameterIdentifierCounter++;
 		}
 ;
 
-function_call_parameters: element {vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
-	| element COMMA function_call_parameters {vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
+function_call_parameters: element {
+	argumentTypes[parameterTypeCounter]=$1.type;
+	parameterTypeCounter++;
+	}
+	| element COMMA function_call_parameters {
+		argumentTypes[parameterTypeCounter]=$1.type;
+		parameterTypeCounter++;
+	}
 ;
 
 function_declaration: FUNCTION IDENTIFIER COLON OPEN_PARENTHESIS function_types CLOSE_PARENTHESIS
 		type_specifier DEFINITION function_definition SEMICOLON {
-			if(SymbolTableGetFunctionReturnType(&globalScope, $2.String)==UNDEFINED){
-				if(numeroArgumentos!=identifierNumber){
-					printf("Number of parameters is different from number of definitions\n");
-					exit(1);
-				}
-				if($7.type!=$9.type){
-					printf("Function return is different from defined return\n");
-					exit(1);
-				}
-				SymbolTableFinishAddFunction(&globalScope, $2.String, $7.type);
-				printf("%s:\n", $2.String);
-				for(size_t i=0; i<identifierNumber; i++){
-					printf("%s", functionDefinitionBuffer[i]);
-				}
-				for(size_t i=0; i<functionExpressionCounter; i++){
-					printf("%s", functionExpressionBuffer[i]);
-				}
-				printf("mov _r, %s;\n", $9.String);
-				printf("jr;\n");
-				SymbolTableInitialize(&localScope);
-				resetVecTypes(vecTypes);
-				numeroArgumentos=0;
-				identifierNumber=0;	
-				localActualTempVar=0;
-				functionExpressionCounter=0;
-			}else{
-				dderror($2.String);
+			if (SymbolTableGetFunctionReturnType(&globalScope, $2.String)!=UNDEFINED)
+				ErrorMessageFunctionDoubleDeclaration($2.String, yylineno);
+
+			if (parameterTypeCounter!=parameterIdentifierCounter) 
+				ErrorMessageFunctionDeclarationIncorrectArgumentNumber($2.String, parameterTypeCounter, parameterIdentifierCounter, yylineno);
+
+			if ($7.type!=$9.type)
+				ErrorMessageFunctionWrongReturnType($2.String, $7.type, $9.type, yylineno);
+
+			SymbolTableFinishAddFunction(&globalScope, $2.String, $7.type);
+			printf("%s:\n", $2.String);
+			for(size_t i=0; i<parameterIdentifierCounter; i++){
+				printf("%s", functionDefinitionBuffer[i]);
 			}
+			for(size_t i=0; i<functionExpressionCounter; i++){
+				printf("%s", functionExpressionBuffer[i]);
+			}
+			printf("mov _r, %s;\n", $9.String);
+			printf("jr;\n");
+			SymbolTableInitialize(&localScope);
+			resetArgumentTypes(argumentTypes);
+			parameterTypeCounter=0;
+			parameterIdentifierCounter=0;	
+			localTempVariableCounter=0;
+			functionExpressionCounter=0;
 		}
 ;
 
 function_call: IDENTIFIER OPEN_PARENTHESIS function_call_parameters CLOSE_PARENTHESIS {
-			if(SymbolTableGetFunctionReturnType(&globalScope, $1.String)==UNDEFINED){
-				deerror($1.String);	
-			}else{
-				if(SymbolTableTestFunctionArgumentTypes(&globalScope, $1.String, vecTypes, numeroArgumentos)!=-1){
-					printf("Deu bosta %d\n", SymbolTableTestFunctionArgumentTypes(&globalScope, $1.String, vecTypes, numeroArgumentos));
-					exit(1);
-				}
+			if (SymbolTableGetFunctionReturnType(&globalScope, $1.String)==UNDEFINED) ErrorMessageFunctionDoesNotExist($1.String, yylineno);
+
+			switch (SymbolTableTestFunctionArgumentTypes(&globalScope, $1.String, argumentTypes, parameterTypeCounter))
+			{
+			case 1:
+				ErrorMessageFunctionCallIncorrectArgumentType($1.String, yylineno);
+				break;
+
+			case 2:
+				ErrorMessageFunctionCallIncorrectArgumentNumber($1.String, yylineno);
+				break;
+
+			case 3:
+				ErrorMessageFunctionCallDoesNotExist($1.String, yylineno);
+				break;
+
+			default:
+				break;
 			}
+
+			parameterTypeCounter = 0;
 		}
 ;
 
@@ -335,12 +320,12 @@ int main() {
 	SymbolTableInitialize(&localScope);
 	SymbolTableInitialize(&globalScope);
 
-	resetVecTypes(vecTypes);
+	resetArgumentTypes(argumentTypes);
 
-	numeroArgumentos=0;
-	identifierNumber=0;
-	actualTempVar=0;
-	localActualTempVar=0;
+	parameterTypeCounter=0;
+	parameterIdentifierCounter=0;
+	globalTempVariableCounter=0;
+	localTempVariableCounter=0;
 	functionExpressionCounter=0;
 
 	yyparse();

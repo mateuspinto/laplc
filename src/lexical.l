@@ -3,16 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "error_messages.h"
 #include "type.h"
+#include "semantic_value.h"
 
-typedef struct
-{
-    char String[64];
-    Type type;
-
-} SemanticValue;
 #define YYSTYPE SemanticValue
-#define YY_DECL int yylex()
 #include "yacc.tab.h"
 
 void copy_lexem(char *result, char * yytext, int yyleng)
@@ -22,8 +17,6 @@ void copy_lexem(char *result, char * yytext, int yyleng)
     }
     result[yyleng]='\0';
 }
-
-char * swapStringToBeCasted = NULL;
 %}
 
 %option noyywrap
@@ -143,7 +136,6 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 {value_float} {
     yylval.type = FLOAT;
     copy_lexem(yylval.String, yytext, yyleng);
-
     return VALUE_FLOAT;
     }
 
@@ -156,7 +148,6 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 {value_char} {
     yylval.type = CHAR;
     copy_lexem(yylval.String, yytext, yyleng);
-
     return VALUE_CHAR;
     }
 
@@ -166,6 +157,6 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
     return IDENTIFIER;
     }
 
-. {printf("laplc: lexical error on line %d\n", yylineno); exit(1);}
+. {ErrorMessageLexicalError(yylineno);}
 
 %%

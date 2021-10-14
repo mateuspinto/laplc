@@ -1,0 +1,8 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+#define SYMBOL_TABLE_SIZE 1024
+#define MAX_IDENTIFIER_SIZE 64
+#define MAX_ARGUMENT_NUMBER 32
+
+#endif

@@ -5,10 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "type.h"
-
-#define SYMBOL_TABLE_SIZE 1024
-#define IDENTIFIER_ALLOC_SIZE 64
-#define MAX_ARGUMENT_NUMBER 32
+#include "constants.h"
 
 typedef enum
 {
@@ -22,7 +19,7 @@ int SymbolTableDefinitionPrintf(SymbolTableDefinition symbolTableDefinition);
 
 typedef struct
 {
-  char identifier[IDENTIFIER_ALLOC_SIZE];
+  char identifier[MAX_IDENTIFIER_SIZE];
 
   SymbolTableDefinition definiton;
   Type returnType;

@@ -179,26 +179,26 @@ Type SymbolTableGetFunctionReturnType(SymbolTable *symbolTable, char *identifier
 }
 
 int SymbolTableTestFunctionArgumentTypes(SymbolTable *symbolTable, char *identifier, Type *argumentTypes, int argumentNumber)
-{ // (-1) Okay, (-2) Number of arguments incorrect, (-3) Function does not exist, (N) Type error of argument N
+{ // (0) Okay, (1) Type error of some argument, (2) Number of arguments incorrect, (3) Function does not exist,
 
     for (size_t i = 0; i < SYMBOL_TABLE_SIZE; i++)
     {
         if ((strcmp((symbolTable->table + i)->identifier, identifier) == 0 ? 1 : 0) && ((symbolTable->table + i)->definiton == STD_FUNCTION))
         {
             if ((symbolTable->table + i)->argumentNumber != argumentNumber)
-                return -2;
+                return 2;
 
             for (size_t j = 0; j < argumentNumber; j++)
             {
                 if ((symbolTable->table + i)->argumentTypes[j] != argumentTypes[j])
-                    return j;
+                    return 1;
             }
 
-            return -1;
+            return 0;
         }
     }
 
-    return -3;
+    return 3;
 }
 
 int SymbolTablePrintf(SymbolTable *symbolTable)
