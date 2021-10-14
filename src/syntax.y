@@ -22,6 +22,12 @@ int parameterIdentifierCounter;
 int globalTempVariableCounter;
 int localTempVariableCounter;
 
+int mainLineCounter;
+int functionLineCounter;
+
+char mainTextSection[1024][64];
+char functionTextSection[1024][64];
+
 int functionExpressionCounter;
 char functionDefinitionBuffer[64][64];
 char functionExpressionBuffer[64][64];
@@ -133,6 +139,12 @@ element: IDENTIFIER {
 	| function_call { 
 			$$.type=SymbolTableGetFunctionReturnType(&globalScope, $1.String);
 			if ($$.type==UNDEFINED) ErrorMessageFunctionDoesNotExist($1.String, yylineno);
+			sprintf(mainTextSection[mainLineCounter], "jal _e%s;\n", $1.String);
+			mainLineCounter++;
+			sprintf($$.String, "_t%d", globalTempVariableCounter);
+			sprintf(mainTextSection[mainLineCounter], "mov _t%d, _r;\n", globalTempVariableCounter);
+			globalTempVariableCounter++;
+			mainLineCounter++;
 	}
 ;
 
@@ -141,7 +153,8 @@ expression: element
 		if ($1.type!=$3.type) ErrorMessageExpressionTypeError($1.type, $3.type, yylineno);
 		$$.type=$1.type;
 		sprintf($$.String, "_t%d", globalTempVariableCounter);
-		printf("%s %s, %s, %s;\n", $2.String, $$.String, $1.String, $3.String);
+		sprintf(mainTextSection[mainLineCounter], "%s %s, %s, %s;\n", $2.String, $$.String, $1.String, $3.String);
+		mainLineCounter++;
 		globalTempVariableCounter++;
 	}
 	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS {
@@ -152,7 +165,8 @@ expression: element
 		if ($2.type!=$5.type) ErrorMessageExpressionTypeError($2.type, $5.type, yylineno);
 		$$.type=$2.type;
 		sprintf($$.String, "_t%d", globalTempVariableCounter);
-		printf("%s %s, %s, %s;\n", $4.String, $$.String, $2.String, $5.String);
+		sprintf(mainTextSection[mainLineCounter], "%s %s, %s, %s;\n", $4.String, $$.String, $2.String, $5.String);
+		mainLineCounter++;
 		globalTempVariableCounter++;
 	}
 ;
@@ -174,8 +188,8 @@ function_expression: function_element
 	| function_element operator function_expression {
 		if ($1.type!=$3.type) ErrorMessageExpressionTypeError($1.type, $3.type, yylineno);
 		$$.type=$1.type;
-		sprintf($$.String, "_t%d", localTempVariableCounter);
-		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+		sprintf($$.String, "_tf%d", localTempVariableCounter);
+		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _tf%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
 		localTempVariableCounter++;
 		functionExpressionCounter++;
 	}
@@ -186,8 +200,8 @@ function_expression: function_element
 	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS operator function_expression {
 		if ($2.type!=$5.type) ErrorMessageExpressionTypeError($2.type, $5.type, yylineno);
 		$$.type=$2.type;
-		sprintf($$.String, "_t%d", localTempVariableCounter);
-		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+		sprintf($$.String, "_tf%d", localTempVariableCounter);
+		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _tf%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
 		localTempVariableCounter++;
 		functionExpressionCounter++;
 	}
@@ -197,7 +211,8 @@ variable_definition: LET IDENTIFIER COLON type_specifier DEFINITION expression S
 			if ($4.type!=$6.type) ErrorMessageExpressionTypeError($4.type, $6.type, yylineno);
 			if (SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED) ErrorMessageVariableOrConstDoubleDeclaration($2.String, yylineno);
 			SymbolTableAddLet(&globalScope, $2.String, $4.type);
-			printf("mov %s, %s;\n", $2.String, $6.String);
+			sprintf(mainTextSection[mainLineCounter], "mov %s, %s;\n", $2.String, $6.String);
+			mainLineCounter++;
 	}
 ;
 
@@ -206,7 +221,8 @@ const_definition: CONST IDENTIFIER COLON type_specifier
 			if ($4.type!=$6.type) ErrorMessageExpressionTypeError($4.type, $6.type, yylineno);
 			if (SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED) ErrorMessageVariableOrConstDoubleDeclaration($2.String, yylineno);
 			SymbolTableAddConst(&globalScope, $2.String, $4.type);
-			printf("mov %s, %s;\n", $2.String, $6.String);
+			sprintf(mainTextSection[mainLineCounter], "mov %s, %s;\n", $2.String, $6.String);
+			mainLineCounter++;
 	}
 ;
 
@@ -250,13 +266,17 @@ function_definition_parameters: IDENTIFIER {
 ;
 
 function_call_parameters: element {
-	argumentTypes[parameterTypeCounter]=$1.type;
-	parameterTypeCounter++;
-	}
+			argumentTypes[parameterTypeCounter]=$1.type;
+			sprintf(mainTextSection[mainLineCounter], "mov _a%d, %s;\n", parameterTypeCounter, $1.String);
+			parameterTypeCounter++;
+			mainLineCounter++;
+		}
 	| element COMMA function_call_parameters {
-		argumentTypes[parameterTypeCounter]=$1.type;
-		parameterTypeCounter++;
-	}
+			argumentTypes[parameterTypeCounter]=$1.type;
+			sprintf(mainTextSection[mainLineCounter], "mov _a%d, %s;\n", parameterTypeCounter, $1.String);
+			parameterTypeCounter++;
+			mainLineCounter++;
+		}
 ;
 
 function_declaration: FUNCTION IDENTIFIER COLON OPEN_PARENTHESIS function_types CLOSE_PARENTHESIS
@@ -271,15 +291,20 @@ function_declaration: FUNCTION IDENTIFIER COLON OPEN_PARENTHESIS function_types 
 				ErrorMessageFunctionWrongReturnType($2.String, $7.type, $9.type, yylineno);
 
 			SymbolTableFinishAddFunction(&globalScope, $2.String, $7.type);
-			printf("%s:\n", $2.String);
+			sprintf(functionTextSection[functionLineCounter], "\n_e%s:\n", $2.String);
+			functionLineCounter++;
 			for(size_t i=0; i<parameterIdentifierCounter; i++){
-				printf("%s", functionDefinitionBuffer[i]);
+				sprintf(functionTextSection[functionLineCounter], "%s", functionDefinitionBuffer[i]);
+				functionLineCounter++;
 			}
 			for(size_t i=0; i<functionExpressionCounter; i++){
-				printf("%s", functionExpressionBuffer[i]);
+				sprintf(functionTextSection[functionLineCounter], "%s", functionExpressionBuffer[i]);
+				functionLineCounter++;
 			}
-			printf("mov _r, %s;\n", $9.String);
-			printf("jr;\n");
+			sprintf(functionTextSection[functionLineCounter], "mov _r, %s;\n", $9.String);
+			functionLineCounter++;
+			sprintf(functionTextSection[functionLineCounter], "jr;\n");
+			functionLineCounter++;
 			SymbolTableInitialize(&localScope);
 			resetArgumentTypes(argumentTypes);
 			parameterTypeCounter=0;
@@ -327,9 +352,21 @@ int main() {
 	globalTempVariableCounter=0;
 	localTempVariableCounter=0;
 	functionExpressionCounter=0;
+	mainLineCounter=0;
+	functionLineCounter=0;
 
 	yyparse();
-	printf("laplc: well formed program\n\n");
+
+	for(size_t i=0; i<functionLineCounter; i++){
+		printf("%s", functionTextSection[i]);
+	}
+	printf("\n_emain:\n");
+	for(size_t i=0; i<mainLineCounter; i++){
+		
+		printf("%s", mainTextSection[i]);
+	}
+
+	printf("\nlaplc: well formed program\n\n");
 
 	printf("Global Symbol Table:\n");
 	SymbolTablePrintf(&globalScope);
