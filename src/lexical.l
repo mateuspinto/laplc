@@ -7,11 +7,7 @@
 
 typedef struct
 {
-    int Int;
-    double Float;
-    bool Bool;
-    char Char;
-    char *String;
+    char String[64];
     Type type;
 
 } SemanticValue;
@@ -19,13 +15,12 @@ typedef struct
 #define YY_DECL int yylex()
 #include "yacc.tab.h"
 
-char * copy_lexem(char * yytext, int yyleng)
+void copy_lexem(char *result, char * yytext, int yyleng)
 {
-    char * to_bison = (char *) malloc((yyleng+1)*sizeof(char));
-    if (to_bison!=NULL) {
-        strcpy(to_bison, yytext);
+    for(size_t i=0; i<yyleng; i++){
+        result[i]=yytext[i];
     }
-    return to_bison;
+    result[yyleng]='\0';
 }
 
 char * swapStringToBeCasted = NULL;
@@ -141,60 +136,33 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 
 {value_int} {
     yylval.type = INT;
-    swapStringToBeCasted = copy_lexem(yytext, yyleng);
-    yylval.Int = atoi(swapStringToBeCasted);
-
-    free(swapStringToBeCasted);
-    swapStringToBeCasted = NULL;
-
+    copy_lexem(yylval.String, yytext, yyleng);
     return VALUE_INT;
     }
 
 {value_float} {
     yylval.type = FLOAT;
-    swapStringToBeCasted = copy_lexem(yytext, yyleng);
-    yylval.Float = strtod(swapStringToBeCasted, NULL);
-
-    free(swapStringToBeCasted);
-    swapStringToBeCasted = NULL;
+    copy_lexem(yylval.String, yytext, yyleng);
 
     return VALUE_FLOAT;
     }
 
 {value_bool} {
     yylval.type = BOOL;
-    swapStringToBeCasted = copy_lexem(yytext, yyleng);
-    
-    switch (strcmp(swapStringToBeCasted, "True") == 0 ? 1 : 0)
-    {
-    case 1:
-        yylval.Bool = 1;
-        break;
-
-    case 2:
-        yylval.Bool = 0;
-        break;
-
-    default:
-        break;
-    }
-
-    free(swapStringToBeCasted);
-    swapStringToBeCasted = NULL;
-
+    copy_lexem(yylval.String, yytext, yyleng);
     return VALUE_BOOL;
     }
 
 {value_char} {
     yylval.type = CHAR;
-    yylval.Char = yytext[1];
+    copy_lexem(yylval.String, yytext, yyleng);
 
     return VALUE_CHAR;
     }
 
 {identifier} {
     yylval.type = STRING;
-    yylval.String = copy_lexem(yytext, yyleng); 
+    copy_lexem(yylval.String, yytext, yyleng); 
     return IDENTIFIER;
     }
 

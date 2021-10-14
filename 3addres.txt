@@ -1,0 +1,15 @@
+main:
+
+mov a0, x;
+mov a1, y;
+
+jal soma
+
+mov z, _r;
+
+soma: 
+
+    add _t0, _a0, _a1;
+    mov _r, _t0;
+
+    jr;

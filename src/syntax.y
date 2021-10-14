@@ -8,11 +8,7 @@
 
 typedef struct
 {
-    int Int;
-    double Float;
-    bool Bool;
-    char Char;
-    char *String;
+    char String[64];
     Type type;
 
 } SemanticValue;
@@ -27,6 +23,13 @@ SymbolTable globalScope;
 Type vecTypes[MAX_ARGUMENT_NUMBER];
 int numeroArgumentos;
 int identifierNumber;
+int actualTempVar;
+int functionExpressionCounter;
+
+char functionDefinitionBuffer[64][64];
+char functionExpressionBuffer[64][64];
+
+int localActualTempVar;
 
 void yyerror(const char* s) 
 {
@@ -139,7 +142,7 @@ type_specifier: TYPE_INT {$$.type = INT;}
 ;
 
 operator: NOT
-	| PLUS
+	| PLUS {strcpy($$.String, "add");}
 	| MINUS
 	| DIVISION
 	| MULTIPLICATION
@@ -164,6 +167,8 @@ element: IDENTIFIER {
 			$$.type=SymbolTableGetVariableOrConstType(&globalScope, $1.String);
 			if($$.type==UNDEFINED)
 				deerror($1.String);
+			strcpy($$.String, $1.String);
+			
 		}
 	| value
 	| function_call { 
@@ -177,11 +182,17 @@ expression: element
 	| element operator expression {
 		if(type_check($1.type, $3.type)) typeerror($1.type, $3.type);
 		$$.type=$1.type;
+		sprintf($$.String, "_t%d", actualTempVar);
+		printf("%s %s, %s, %s;\n", $2.String, $$.String, $1.String, $3.String);
+		actualTempVar++;
 	}
-	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS {$$.type=$2.type;}
+	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS {$$.type=$2.type;strcpy($$.String, $2.String);}
 	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS operator expression {
 		if(type_check($2.type, $5.type)) typeerror($2.type, $5.type);
 		$$.type=$2.type;
+		sprintf($$.String, "_t%d", actualTempVar);
+		printf("%s %s, %s, %s;\n", $4.String, $$.String, $2.String, $5.String);
+		actualTempVar++;
 	}
 ;
 
@@ -189,6 +200,11 @@ function_element: IDENTIFIER {
 			$$.type=SymbolTableGetVariableOrConstType(&localScope, $1.String);
 			if($$.type==UNDEFINED)
 				deerror($1.String);
+			strcpy($$.String, "_f");
+			for(size_t i=0; i<62; i++){
+				$$.String[i+2]=$1.String[i];
+			}
+			
 		}
 	| value
 ;
@@ -197,11 +213,21 @@ function_expression: function_element
 	| function_element operator function_expression {
 		if(type_check($1.type, $3.type)) typeerror($1.type, $3.type);
 		$$.type=$1.type;
+		sprintf($$.String, "_t%d", localActualTempVar);
+		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localActualTempVar, $1.String, $3.String);
+		localActualTempVar++;
+		functionExpressionCounter++;
+		actualTempVar++;
 	}
-	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS {$$.type=$2.type;}
+	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS {$$.type=$2.type;strcpy($$.String, $2.String);}
 	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS operator function_expression {
 		if(type_check($2.type, $5.type)) typeerror($2.type, $5.type);
 		$$.type=$2.type;
+		sprintf($$.String, "_t%d", localActualTempVar);
+		sprintf(functionExpressionBuffer[functionExpressionCounter],"%s _t%d, %s, %s;\n", $2.String, localActualTempVar, $1.String, $3.String);
+		localActualTempVar++;
+		functionExpressionCounter++;
+		actualTempVar++;
 	}
 ;
 
@@ -211,6 +237,7 @@ variable_definition: LET IDENTIFIER COLON type_specifier
 			if(SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED)
 				dderror($2.String);
 			SymbolTableAddLet(&globalScope, $2.String, $4.type);
+			printf("mov %s, %s;\n", $2.String, $6.String);
 		}
 ;
 
@@ -220,6 +247,7 @@ const_definition: CONST IDENTIFIER COLON type_specifier
 			if(SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED)
 				dderror($2.String);
 			SymbolTableAddConst(&globalScope, $2.String, $4.type);
+			printf("mov %s, %s;\n", $2.String, $6.String);
 		}
 ;
 
@@ -232,7 +260,7 @@ guards: function_element operator function_element COLON OPEN_BRACE function_exp
 		}
 ;
 
-function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE function_expression CLOSE_BRACE {$$.type=$6.type;}
+function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE function_expression CLOSE_BRACE {$$.type=$6.type; strcpy($$.String, $6.String);}
 	| OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW MATCH OPEN_BRACE guards CLOSE_BRACE {$$.type=$7.type;}
 ;
 
@@ -242,10 +270,12 @@ function_types: type_specifier {SymbolTableAddFunctionArgumentType(&globalScope,
 
 function_definition_parameters: IDENTIFIER {
 			SymbolTableAddLet(&localScope, $1.String, vecTypes[identifierNumber]);
+			sprintf(functionDefinitionBuffer[identifierNumber], "mov _f%s, _a%d;\n", $1.String, identifierNumber);
 			identifierNumber++;
 		}
 	| IDENTIFIER COMMA function_definition_parameters {
 			SymbolTableAddLet(&localScope, $1.String, vecTypes[identifierNumber]);
+			sprintf(functionDefinitionBuffer[identifierNumber], "mov _f%s, _a%d;\n", $1.String, identifierNumber);
 			identifierNumber++;
 		}
 ;
@@ -266,10 +296,21 @@ function_declaration: FUNCTION IDENTIFIER COLON OPEN_PARENTHESIS function_types 
 					exit(1);
 				}
 				SymbolTableFinishAddFunction(&globalScope, $2.String, $7.type);
+				printf("%s:\n", $2.String);
+				for(size_t i=0; i<identifierNumber; i++){
+					printf("%s", functionDefinitionBuffer[i]);
+				}
+				for(size_t i=0; i<functionExpressionCounter; i++){
+					printf("%s", functionExpressionBuffer[i]);
+				}
+				printf("mov _r, %s;\n", $9.String);
+				printf("jr;\n");
 				SymbolTableInitialize(&localScope);
 				resetVecTypes(vecTypes);
 				numeroArgumentos=0;
 				identifierNumber=0;	
+				localActualTempVar=0;
+				functionExpressionCounter=0;
 			}else{
 				dderror($2.String);
 			}
@@ -298,6 +339,9 @@ int main() {
 
 	numeroArgumentos=0;
 	identifierNumber=0;
+	actualTempVar=0;
+	localActualTempVar=0;
+	functionExpressionCounter=0;
 
 	yyparse();
 	printf("laplc: well formed program\n\n");
