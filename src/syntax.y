@@ -24,6 +24,10 @@ extern int yylineno;
 SymbolTable localScope;
 SymbolTable globalScope;
 
+Type vecTypes[MAX_ARGUMENT_NUMBER];
+int numeroArgumentos;
+int identifierNumber;
+
 void yyerror(const char* s) 
 {
 	fprintf(stderr, "\nlaplc error: %s on line %d\n", s, yylineno);
@@ -56,6 +60,14 @@ void typeerror(Type s, Type z)
 int type_check(Type a, Type b)
 {
 	return (a!=b);
+}
+
+void resetVecTypes(Type *vec)
+{
+	for (size_t i = 0; i < MAX_ARGUMENT_NUMBER; i++)
+    {
+        vec[i] = UNDEFINED;
+    }	
 }
 
 // smt_expression_error
@@ -105,6 +117,8 @@ int type_check(Type a, Type b)
 %token PERIOD
 %token DEFINITION
 %token POW
+%token MATCH
+%token DEFAULT
 
 %start run
 %%
@@ -152,16 +166,40 @@ element: IDENTIFIER {
 				deerror($1.String);
 		}
 	| value
-	| function_call
+	| function_call { 
+			$$.type=SymbolTableGetFunctionReturnType(&globalScope, $1.String);
+			if($$.type==UNDEFINED)
+				deerror($1.String);
+		}
 ;
 
 expression: element
 	| element operator expression {
-		if(type_check($1.type, $3.type)) typeerror($1.type, $2.type);
+		if(type_check($1.type, $3.type)) typeerror($1.type, $3.type);
 		$$.type=$1.type;
 	}
 	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS {$$.type=$2.type;}
 	| OPEN_PARENTHESIS expression CLOSE_PARENTHESIS operator expression {
+		if(type_check($2.type, $5.type)) typeerror($2.type, $5.type);
+		$$.type=$2.type;
+	}
+;
+
+function_element: IDENTIFIER { 
+			$$.type=SymbolTableGetVariableOrConstType(&localScope, $1.String);
+			if($$.type==UNDEFINED)
+				deerror($1.String);
+		}
+	| value
+;
+
+function_expression: function_element
+	| function_element operator function_expression {
+		if(type_check($1.type, $3.type)) typeerror($1.type, $3.type);
+		$$.type=$1.type;
+	}
+	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS {$$.type=$2.type;}
+	| OPEN_PARENTHESIS function_expression CLOSE_PARENTHESIS operator function_expression {
 		if(type_check($2.type, $5.type)) typeerror($2.type, $5.type);
 		$$.type=$2.type;
 	}
@@ -172,7 +210,7 @@ variable_definition: LET IDENTIFIER COLON type_specifier
 			if($4.type!=$6.type) typeerror($4.type, $6.type);
 			if(SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED)
 				dderror($2.String);
-			SymbolTableAddConst(&globalScope, $2.String, $4.type);
+			SymbolTableAddLet(&globalScope, $2.String, $4.type);
 		}
 ;
 
@@ -185,29 +223,69 @@ const_definition: CONST IDENTIFIER COLON type_specifier
 		}
 ;
 
-function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE expression CLOSE_BRACE
+guards: function_element operator function_element COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON {$$.type=$6.type;}
+	| DEFAULT COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON {$$.type=$4.type;}
+	| function_element operator function_element COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON guards {
+			if($9.type!=$6.type)
+				typeerror($9.type, $6.type);
+			$$.type=$5.type;
+		}
 ;
 
-function_types: type_specifier
-	| type_specifier COMMA function_types
+function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE function_expression CLOSE_BRACE {$$.type=$6.type;}
+	| OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW MATCH OPEN_BRACE guards CLOSE_BRACE {$$.type=$7.type;}
 ;
 
-function_definition_parameters: IDENTIFIER
-	| IDENTIFIER COMMA function_definition_parameters
+function_types: type_specifier {SymbolTableAddFunctionArgumentType(&globalScope, $1.type); vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
+	| type_specifier COMMA function_types {SymbolTableAddFunctionArgumentType(&globalScope, $1.type); vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
 ;
 
-function_call_parameters: element
-	| element COMMA function_call_parameters
+function_definition_parameters: IDENTIFIER {
+			SymbolTableAddLet(&localScope, $1.String, vecTypes[identifierNumber]);
+			identifierNumber++;
+		}
+	| IDENTIFIER COMMA function_definition_parameters {
+			SymbolTableAddLet(&localScope, $1.String, vecTypes[identifierNumber]);
+			identifierNumber++;
+		}
+;
+
+function_call_parameters: element {vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
+	| element COMMA function_call_parameters {vecTypes[numeroArgumentos]=$1.type; numeroArgumentos++;}
 ;
 
 function_declaration: FUNCTION IDENTIFIER COLON OPEN_PARENTHESIS function_types CLOSE_PARENTHESIS
 		type_specifier DEFINITION function_definition SEMICOLON {
-			// Do type checking
-			SymbolTableInitialize(&localScope);
+			if(SymbolTableGetFunctionReturnType(&globalScope, $2.String)==UNDEFINED){
+				if(numeroArgumentos!=identifierNumber){
+					printf("Number of parameters is different from number of definitions\n");
+					exit(1);
+				}
+				if($7.type!=$9.type){
+					printf("Function return is different from defined return\n");
+					exit(1);
+				}
+				SymbolTableFinishAddFunction(&globalScope, $2.String, $7.type);
+				SymbolTableInitialize(&localScope);
+				resetVecTypes(vecTypes);
+				numeroArgumentos=0;
+				identifierNumber=0;	
+			}else{
+				dderror($2.String);
+			}
 		}
 ;
 
-function_call: IDENTIFIER OPEN_PARENTHESIS function_call_parameters CLOSE_PARENTHESIS
+function_call: IDENTIFIER OPEN_PARENTHESIS function_call_parameters CLOSE_PARENTHESIS {
+			if(SymbolTableGetFunctionReturnType(&globalScope, $1.String)==UNDEFINED){
+				deerror($1.String);	
+			}else{
+				if(SymbolTableTestFunctionArgumentTypes(&globalScope, $1.String, vecTypes, numeroArgumentos)!=-1){
+					printf("Deu bosta %d\n", SymbolTableTestFunctionArgumentTypes(&globalScope, $1.String, vecTypes, numeroArgumentos));
+					exit(1);
+				}
+			}
+		}
 ;
 
 %%
@@ -215,6 +293,11 @@ function_call: IDENTIFIER OPEN_PARENTHESIS function_call_parameters CLOSE_PARENT
 int main() {
 	SymbolTableInitialize(&localScope);
 	SymbolTableInitialize(&globalScope);
+
+	resetVecTypes(vecTypes);
+
+	numeroArgumentos=0;
+	identifierNumber=0;
 
 	yyparse();
 	printf("laplc: well formed program\n\n");

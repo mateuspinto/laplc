@@ -1,6 +1,12 @@
-# Exemplo mais simples possível: Hello, World! na linguagem Laplace
+# Exemplo de uma função com guardas: Cálculo do quinto elemento da sequencia de Fibonnaci
 
-from Iostream import printLn
+function fibonnaci: (Int) Int = (n) => match
+{
+    n==0: {1};
+    n==1: {1};
+    default: {2+2};
+};
 
-let main: Int = printLn("Hello, World!");
-let main: Int = printLn("Hello, World!");
+const posicao: Int = 5;
+
+let result: Int = fibonnaci(posicao);

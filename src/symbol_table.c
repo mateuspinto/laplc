@@ -185,7 +185,7 @@ int SymbolTableTestFunctionArgumentTypes(SymbolTable *symbolTable, char *identif
     {
         if ((strcmp((symbolTable->table + i)->identifier, identifier) == 0 ? 1 : 0) && ((symbolTable->table + i)->definiton == STD_FUNCTION))
         {
-            if ((symbolTable->table)->argumentNumber != argumentNumber)
+            if ((symbolTable->table + i)->argumentNumber != argumentNumber)
                 return -2;
 
             for (size_t j = 0; j < argumentNumber; j++)

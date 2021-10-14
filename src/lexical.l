@@ -37,6 +37,8 @@ char * swapStringToBeCasted = NULL;
 let let
 const const
 function function
+match match
+default default
 
 type_int Int
 type_float Float
@@ -133,6 +135,9 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 {less_or_equal} {return LESS_OR_EQUAL;}
 {and} {return AND;}
 {or} {return OR;}
+
+{match} {return MATCH;}
+{default} {return DEFAULT;}
 
 {value_int} {
     yylval.type = INT;
