@@ -21,6 +21,8 @@ int parameterTypeCounter;
 int parameterIdentifierCounter;
 int globalTempVariableCounter;
 int localTempVariableCounter;
+int globalLabelCounter;
+int localLabelCounter;
 
 int mainLineCounter;
 int functionLineCounter;
@@ -29,8 +31,12 @@ char mainTextSection[1024][64];
 char functionTextSection[1024][64];
 
 int functionExpressionCounter;
+int functionGuardExpressionCounter;
+int functionGuardCounter;
 char functionDefinitionBuffer[64][64];
 char functionExpressionBuffer[64][64];
+char functionGuardBuffer[64][64];
+char functionGuardExpressionBuffer[64][64];
 
 void yyerror(const char* s) 
 {
@@ -207,6 +213,29 @@ function_expression: function_element
 	}
 ;
 
+function_guard_expression: function_element
+	| function_element operator function_guard_expression {
+		if ($1.type!=$3.type) ErrorMessageExpressionTypeError($1.type, $3.type, yylineno);
+		$$.type=$1.type;
+		sprintf($$.String, "_tf%d", localTempVariableCounter);
+		sprintf(functionGuardExpressionBuffer[functionGuardExpressionCounter],"%s _tf%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+		localTempVariableCounter++;
+		functionGuardExpressionCounter++;
+	}
+	| OPEN_PARENTHESIS function_guard_expression CLOSE_PARENTHESIS {
+		$$.type=$2.type;
+		strcpy($$.String, $2.String);
+	}
+	| OPEN_PARENTHESIS function_guard_expression CLOSE_PARENTHESIS operator function_guard_expression {
+		if ($2.type!=$5.type) ErrorMessageExpressionTypeError($2.type, $5.type, yylineno);
+		$$.type=$2.type;
+		sprintf($$.String, "_tf%d", localTempVariableCounter);
+		sprintf(functionGuardExpressionBuffer[functionGuardExpressionCounter],"%s _tf%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+		localTempVariableCounter++;
+		functionGuardExpressionCounter++;
+	}
+;
+
 variable_definition: LET IDENTIFIER COLON type_specifier DEFINITION expression SEMICOLON {
 			if ($4.type!=$6.type) ErrorMessageExpressionTypeError($4.type, $6.type, yylineno);
 			if (SymbolTableGetVariableOrConstType(&globalScope, $2.String)!=UNDEFINED) ErrorMessageVariableOrConstDoubleDeclaration($2.String, yylineno);
@@ -226,18 +255,74 @@ const_definition: CONST IDENTIFIER COLON type_specifier
 	}
 ;
 
-guards: function_element operator function_element COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON {$$.type=$6.type;}
-	| DEFAULT COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON {$$.type=$4.type;}
-	| function_element operator function_element COLON OPEN_BRACE function_expression CLOSE_BRACE SEMICOLON guards {
+guards: function_element operator function_element COLON OPEN_BRACE function_guard_expression CLOSE_BRACE SEMICOLON {
+			$$.type=$6.type;
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"_e%d_%d:\n", globalLabelCounter, localLabelCounter);
+			functionExpressionCounter++;
+			for(size_t i=0; i<functionGuardExpressionCounter; i++){
+				strcpy(functionExpressionBuffer[functionExpressionCounter],functionGuardExpressionBuffer[i]);
+				functionExpressionCounter++;
+			}
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"mov _r, %s;\n", $6.String);
+			functionExpressionCounter++;
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"jr;\n");
+			functionExpressionCounter++;
+			functionGuardExpressionCounter=0;
+			sprintf(functionGuardBuffer[functionGuardCounter],"beq _tf%d, 1, _e%d_%d;\n", localTempVariableCounter, globalLabelCounter, localLabelCounter);
+			functionGuardCounter++;
+			sprintf(functionGuardBuffer[functionGuardCounter],"%s _tf%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+			functionGuardCounter++;
+			localTempVariableCounter++;
+			localLabelCounter++;
+		}
+	| DEFAULT COLON OPEN_BRACE function_guard_expression CLOSE_BRACE SEMICOLON {
+			$$.type=$4.type;
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"_e%d_%d:\n", globalLabelCounter, localLabelCounter);
+			functionExpressionCounter++;
+			for(size_t i=0; i<functionGuardExpressionCounter; i++){
+				strcpy(functionExpressionBuffer[functionExpressionCounter],functionGuardExpressionBuffer[i]);
+				functionExpressionCounter++;
+			}
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"mov _r, %s;\n", $4.String);
+			functionExpressionCounter++;
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"jr;\n");
+			functionExpressionCounter++;
+			functionGuardExpressionCounter=0;
+			sprintf(functionGuardBuffer[functionGuardCounter],"j _e%d_%d;\n", globalLabelCounter, localLabelCounter);
+			functionGuardCounter++;
+			localLabelCounter++;
+		}
+	| function_element operator function_element COLON OPEN_BRACE function_guard_expression CLOSE_BRACE SEMICOLON guards {
 			if ($9.type!=$6.type) ErrorMessageExpressionTypeError($9.type, $6.type, yylineno);
 			$$.type=$5.type;
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"_e%d_%d:\n", globalLabelCounter, localLabelCounter);
+			functionExpressionCounter++;
+			for(size_t i=0; i<functionGuardExpressionCounter; i++){
+				strcpy(functionExpressionBuffer[functionExpressionCounter],functionGuardExpressionBuffer[i]);
+				functionExpressionCounter++;
+			}
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"mov _r, %s;\n", $6.String);
+			functionExpressionCounter++;
+			sprintf(functionExpressionBuffer[functionExpressionCounter],"jr;\n");
+			functionExpressionCounter++;
+			functionGuardExpressionCounter=0;
+			sprintf(functionGuardBuffer[functionGuardCounter],"beq _tf%d, 1, _e%d_%d;\n", localTempVariableCounter, globalLabelCounter, localLabelCounter);
+			functionGuardCounter++;
+			sprintf(functionGuardBuffer[functionGuardCounter],"%s _tf%d, %s, %s;\n", $2.String, localTempVariableCounter, $1.String, $3.String);
+			functionGuardCounter++;
+			localTempVariableCounter++;
+			localLabelCounter++;
 	}
 ;
 
 function_definition: OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW OPEN_BRACE function_expression CLOSE_BRACE {
-	$$.type=$6.type;
-	strcpy($$.String, $6.String);
-	}
+			$$.type=$6.type;
+			strcpy($$.String, $6.String);
+			sprintf(functionExpressionBuffer[functionExpressionCounter], "mov _r, %s;\n", $6.String);
+			functionExpressionCounter++;
+			sprintf(functionExpressionBuffer[functionExpressionCounter], "jr;\n");
+			functionExpressionCounter++;
+		}
 	| OPEN_PARENTHESIS function_definition_parameters CLOSE_PARENTHESIS ARROW MATCH OPEN_BRACE guards CLOSE_BRACE {$$.type=$7.type;}
 ;
 
@@ -297,20 +382,23 @@ function_declaration: FUNCTION IDENTIFIER COLON OPEN_PARENTHESIS function_types 
 				sprintf(functionTextSection[functionLineCounter], "%s", functionDefinitionBuffer[i]);
 				functionLineCounter++;
 			}
+			for(size_t i=functionGuardCounter-1; i!=-1; i--){
+				sprintf(functionTextSection[functionLineCounter], "%s", functionGuardBuffer[i]);
+				functionLineCounter++;
+			}
 			for(size_t i=0; i<functionExpressionCounter; i++){
 				sprintf(functionTextSection[functionLineCounter], "%s", functionExpressionBuffer[i]);
 				functionLineCounter++;
 			}
-			sprintf(functionTextSection[functionLineCounter], "mov _r, %s;\n", $9.String);
-			functionLineCounter++;
-			sprintf(functionTextSection[functionLineCounter], "jr;\n");
-			functionLineCounter++;
+			globalLabelCounter++;
 			SymbolTableInitialize(&localScope);
 			resetArgumentTypes(argumentTypes);
 			parameterTypeCounter=0;
 			parameterIdentifierCounter=0;	
 			localTempVariableCounter=0;
 			functionExpressionCounter=0;
+			localLabelCounter=0;
+			functionGuardCounter=0;
 		}
 ;
 
@@ -354,6 +442,10 @@ int main() {
 	functionExpressionCounter=0;
 	mainLineCounter=0;
 	functionLineCounter=0;
+	globalLabelCounter=0;
+	localLabelCounter=0;
+	functionGuardExpressionCounter=0;
+	functionGuardCounter=0;
 
 	yyparse();
 

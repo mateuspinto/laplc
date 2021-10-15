@@ -1,4 +1,10 @@
-function soma: (Int, Int) Int = (x, y) => {x+y+x};
-function subtracao: (Int, Int) Int = (x, y) => {x-y};
-const a: Int = 2+2-2+2+2;
-const x: Int = soma(5, 4);
+function fibonnaci: (Int) Int = (n) => match
+{
+    n==0: {1};
+    n==1: {1};
+    default: {2+2};
+};
+
+function soma: (Int, Int) Int = (x, y) => {x+y};
+
+let x: Int = soma(3, 2)+fibonnaci(0);
