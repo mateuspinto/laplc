@@ -1,8 +1,12 @@
-# Exemplo de uma função: soma simples de dois termos.
+# Exemplo de uma função com guardas: Cálculo do quinto elemento da sequencia de Fibonnaci
 
-from Iostream import printLn
+function fibonnaci: (Int) Int = (n) => match
+{
+    n==0: {1};
+    n==1: {1};
+    default: {2+2};
+};
 
-function soma: (Int, Int) Int = (x, y) => {x+y};
-let x: Int = soma(3, 2);
+const a: Int = 2;
+const posicao: Int = a+(5+4);
 
-let main: Int = printLn(x);

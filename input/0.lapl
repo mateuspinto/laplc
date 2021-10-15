@@ -1,6 +1,4 @@
-# Exemplo mais simples possível: Hello, World! na linguagem Laplace
-
-from Iostream import printLn
-
-let main: Int = printLn("Hello, World!");
-let main: Int = printLn("Hello, World!");
+function soma: (Int, Int) Int = (x, y) => {x+y+x};
+function subtracao: (Int, Int) Int = (x, y) => {x-y};
+const a: Int = 2+2-2+2+2;
+const x: Int = soma(5, 4);
