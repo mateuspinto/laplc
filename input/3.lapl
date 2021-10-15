@@ -1,9 +1,0 @@
-# Exemplo de listas: mapeamento para calculo de idade
-
-from Functools import map
-from Iostream import printLn
-
-let anosDeNascimento: [Int; 4] = [1960, 1985, 2002, 1999];
-let idades: [Int; 4] = anosDeNascimento.map(printLn);
-
-let main: Int = printLn(idades);

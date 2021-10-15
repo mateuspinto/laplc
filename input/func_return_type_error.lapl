@@ -1,0 +1,5 @@
+function parCheck: (Float) Bool = (n) => match
+{
+    n==0.0:{1};
+    default:{0};
+};

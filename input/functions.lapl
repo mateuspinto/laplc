@@ -1,0 +1,10 @@
+function parCheck: (Float) Bool = (n) => match
+{
+    n==0.0:{True};
+    default:{False};
+};
+
+function soma: (Float, Float) Float = (x, y) => {x+y};
+
+let x: Bool = parCheck(soma(3.2+2.2, 2.2+5.4)%2.0);
+
