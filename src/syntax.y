@@ -294,7 +294,7 @@ guards: function_element operator function_element COLON OPEN_BRACE function_gua
 		}
 	| function_element operator function_element COLON OPEN_BRACE function_guard_expression CLOSE_BRACE SEMICOLON guards {
 			if ($9.type!=$6.type) ErrorMessageExpressionTypeError($9.type, $6.type, yylineno);
-			$$.type=$5.type;
+			$$.type=$6.type;
 			sprintf(functionExpressionBuffer[functionExpressionCounter],"_e%d_%d:\n", globalLabelCounter, localLabelCounter);
 			functionExpressionCounter++;
 			for(size_t i=0; i<functionGuardExpressionCounter; i++){
@@ -350,13 +350,13 @@ function_definition_parameters: IDENTIFIER {
 		}
 ;
 
-function_call_parameters: element {
+function_call_parameters: expression {
 			argumentTypes[parameterTypeCounter]=$1.type;
 			sprintf(mainTextSection[mainLineCounter], "mov _a%d, %s;\n", parameterTypeCounter, $1.String);
 			parameterTypeCounter++;
 			mainLineCounter++;
 		}
-	| element COMMA function_call_parameters {
+	| expression COMMA function_call_parameters {
 			argumentTypes[parameterTypeCounter]=$1.type;
 			sprintf(mainTextSection[mainLineCounter], "mov _a%d, %s;\n", parameterTypeCounter, $1.String);
 			parameterTypeCounter++;

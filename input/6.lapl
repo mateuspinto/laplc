@@ -1,4 +1,0 @@
-# Exemplo mais simples possível: Hello, World! na linguagem Laplace
-
-let main: Int = printLn("Hello, World!");
-let main: Int = printLn("Hello, World!");
