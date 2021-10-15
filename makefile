@@ -5,8 +5,8 @@ CC=gcc
 LEX=flex
 YACC=bison
 
-CFLAGS=
-LFLAGS=
+CFLAGS=-O2 -march=native
+LFLAGS=-static
 WARN=
 
 all: yacc lex compile
