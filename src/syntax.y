@@ -80,6 +80,7 @@ void resetArgumentTypes(Type *vec)
 %token LESS_OR_EQUAL
 %token AND
 %token OR
+%token XOR
 %token OPEN_PARENTHESIS
 %token CLOSE_PARENTHESIS
 %token OPEN_BRACKET
@@ -127,7 +128,8 @@ operator: NOT {strcpy($$.String, "not");}
 	| GREATER_OR_EQUAL {strcpy($$.String, "ge");}
 	| LESS_OR_EQUAL {strcpy($$.String, "le");}
 	| AND {strcpy($$.String, "and");}
-	| OR {strcpy($$.String, "add");}
+	| OR {strcpy($$.String, "or");}
+	| XOR {strcpy($$.String, "xor");}
 ;
 
 value: VALUE_INT

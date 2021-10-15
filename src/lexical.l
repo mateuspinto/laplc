@@ -65,6 +65,7 @@ greater_or_equal ">="
 less_or_equal "<="
 and "&"
 or "|"
+xor "^"
 
 digit [0-9]
 number {digit}+
@@ -123,6 +124,7 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 {less_or_equal} {return LESS_OR_EQUAL;}
 {and} {return AND;}
 {or} {return OR;}
+{xor} {return XOR;}
 
 {match} {return MATCH;}
 {default} {return DEFAULT;}

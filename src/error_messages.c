@@ -8,13 +8,13 @@ void ErrorMessageLexicalError(int yylineno)
 
 void ErrorMessageVariableOrConstDoesNotExist(const char *s, int yylineno)
 {
-    printf("laplc error: syntax error, variable or const %s does not exist - line %d\n", s, yylineno);
+    printf("laplc error: syntax error, variable or const %s does not exist, on line %d\n", s, yylineno);
     exit(1);
 }
 
 void ErrorMessageFunctionDoesNotExist(const char *s, int yylineno)
 {
-    printf("laplc error: syntax error, function %s does not exist - line %d\n", s, yylineno);
+    printf("laplc error: syntax error, function %s does not exist, on line %d\n", s, yylineno);
     exit(1);
 }
 
@@ -36,7 +36,7 @@ void ErrorMessageExpressionTypeError(Type left, Type right, int yylineno)
 
 void ErrorMessageFunctionDeclarationIncorrectArgumentNumber(char *functionName, int expectedArgumentNumber, int giverArgumentNumber, int yylineno)
 {
-    printf("laplc error: semantic error, function %s has %d parameter types, but only %d parameter identifiers were given on line %d\n", functionName, expectedArgumentNumber, giverArgumentNumber, yylineno);
+    printf("laplc error: semantic error, function %s has %d parameter types, but %d parameter identifiers were given on line %d\n", functionName, expectedArgumentNumber, giverArgumentNumber, yylineno);
     exit(1);
 }
 

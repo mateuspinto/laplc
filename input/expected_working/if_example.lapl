@@ -1,0 +1,16 @@
+function if: (Bool, Int, Int) Int = (condition, a, b) => match
+{
+    condition==True: {a};
+    default: {b};
+};
+
+function intToBool: (Int) Bool = (n) => match
+{
+    n==1: {True};
+    default: {False};
+};
+
+const number: Int = 55;
+let isNumberEven: Int = number%2==0;
+
+let isEven: Bool = intToBool(isNumberEven);

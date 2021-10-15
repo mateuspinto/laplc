@@ -1,0 +1,13 @@
+const x: Float = 5.1;
+const y: Float = 4.2;
+const z: Float = 2.1;
+
+let result: Float = (x+y)*(z-x)/(z+y);
+
+let greater: Float = x>y;
+let lower: Float = x<y;
+let equal: Float = x==y;
+let notEqual: Float = x!=y;
+
+let greaterOrEqual: Float = x>=y;
+let lowerOrEqual: Float = x<=y;

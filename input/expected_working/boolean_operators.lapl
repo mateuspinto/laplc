@@ -1,0 +1,6 @@
+const a: Bool = True;
+const b: Bool = True;
+
+let and: Bool = a & b;
+let or: Bool = a | b;
+let xor: Bool = a ^ b;
