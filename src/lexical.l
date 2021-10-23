@@ -47,7 +47,6 @@ arrow "=>"
 colon ":"
 comma ","
 semicolon ";"
-period "."
 definition "="
 
 not "!"
@@ -88,10 +87,25 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 {const} {return CONST;}
 {function} {return FUNCTION;}
 
-{type_int} {return TYPE_INT;}
-{type_float} {return TYPE_FLOAT;}
-{type_char} {return TYPE_CHAR;}
-{type_bool} {return TYPE_BOOL;}
+{type_int} {
+    yylval.type = INT;
+    return TYPE_INT;
+    }
+
+{type_float} {
+    yylval.type = FLOAT;
+    return TYPE_FLOAT;
+    }
+
+{type_char} {
+    yylval.type = CHAR;
+    return TYPE_CHAR;
+    }
+
+{type_bool} {
+    yylval.type = BOOL;
+    return TYPE_BOOL;
+    }
 
 {open_parenthesis} {return OPEN_PARENTHESIS;}
 {close_parenthesis} {return CLOSE_PARENTHESIS;}
@@ -106,7 +120,6 @@ identifier {lowercase}({lowercase}|{uppercase}|{digit})*
 {colon} {return COLON;}
 {comma} {return COMMA;}
 {semicolon} {return SEMICOLON;}
-{period} {return PERIOD;}
 {definition} {return DEFINITION;}
 
 {not} {return NOT;}

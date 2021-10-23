@@ -8,7 +8,6 @@ typedef struct
 {
     char String[MAX_IDENTIFIER_SIZE];
     Type type;
-
 } SemanticValue;
 
 #endif

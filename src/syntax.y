@@ -40,7 +40,7 @@ char functionGuardExpressionBuffer[64][64];
 
 void yyerror(const char* s) 
 {
-	fprintf(stderr, "\nlaplc error: %s on line %d\n", s, yylineno);
+	fprintf(stderr, "\nlaplc error: %s: no production to match on line %d\n", s, yylineno);
 	exit(1);
 }
 
@@ -91,7 +91,6 @@ void resetArgumentTypes(Type *vec)
 %token COLON
 %token COMMA
 %token SEMICOLON
-%token PERIOD
 %token DEFINITION
 %token POW
 %token MATCH
@@ -109,10 +108,10 @@ statements: variable_definition
 	| function_declaration
 ;
 
-type_specifier: TYPE_INT {$$.type = INT;}
-	| TYPE_FLOAT {$$.type = FLOAT;}
- 	| TYPE_CHAR {$$.type = CHAR;}
-	| TYPE_BOOL {$$.type = BOOL;}
+type_specifier: TYPE_INT
+	| TYPE_FLOAT
+ 	| TYPE_CHAR
+	| TYPE_BOOL
 ;
 
 operator: NOT {strcpy($$.String, "not");}
@@ -183,7 +182,6 @@ function_element: IDENTIFIER {
 			$$.type=SymbolTableGetVariableOrConstType(&localScope, $1.String);
 			if ($$.type==UNDEFINED) ErrorMessageVariableOrConstDoesNotExist($1.String, yylineno);
 			
-			// Concating _f to function variables
 			strcpy($$.String, "_f");
 			for(size_t i=0; i<62; i++){
 				$$.String[i+2]=$1.String[i];
