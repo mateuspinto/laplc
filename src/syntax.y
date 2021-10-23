@@ -27,16 +27,16 @@ int localLabelCounter;
 int mainLineCounter;
 int functionLineCounter;
 
-char mainTextSection[1024][64];
-char functionTextSection[1024][64];
+char mainTextSection[MAX_CODE_GEN_LINE_NUMBER][MAX_CODE_GEN_LINE_SIZE];
+char functionTextSection[MAX_CODE_GEN_LINE_NUMBER][MAX_CODE_GEN_LINE_SIZE];
 
 int functionExpressionCounter;
 int functionGuardExpressionCounter;
 int functionGuardCounter;
-char functionDefinitionBuffer[64][64];
-char functionExpressionBuffer[64][64];
-char functionGuardBuffer[64][64];
-char functionGuardExpressionBuffer[64][64];
+char functionDefinitionBuffer[MAX_GUARD_LINE_NUMBER][MAX_CODE_GEN_LINE_SIZE];
+char functionExpressionBuffer[MAX_GUARD_LINE_NUMBER][MAX_CODE_GEN_LINE_SIZE];
+char functionGuardBuffer[MAX_GUARD_LINE_NUMBER][MAX_CODE_GEN_LINE_SIZE];
+char functionGuardExpressionBuffer[MAX_GUARD_LINE_NUMBER][MAX_CODE_GEN_LINE_SIZE];
 
 void yyerror(const char* s) 
 {
