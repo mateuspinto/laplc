@@ -1,2 +1,9 @@
+function parCheck: (Float) Bool = (n) => match
+{
+    n==0.0:{True};
+    default:{False};
+};
+
 function soma: (Float, Float) Float = (x, y) => {x+y};
+
 let result:Int=soma(2.2,5.6,7.1);

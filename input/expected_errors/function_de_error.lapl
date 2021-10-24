@@ -1,2 +1,15 @@
+function if: (Bool, Int, Int) Int = (condition, a, b) => match
+{
+    condition==True: {a};
+    default: {b};
+};
+
+function intToBool: (Int) Bool = (n) => match
+{
+    n==1: {True};
+    default: {False};
+};
+
 function soma: (Float, Float) Float = (x, y) => {x+y};
+
 let result:Int=sum(2,5);

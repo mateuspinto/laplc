@@ -1,2 +1,7 @@
+let a: Char = 'w';
+let b: Char = 'w';
+let c: Char = 'w';
+let d: Char = 'w';
+
 function soma: (Float, Float) Float = (x, y) => {x+y};
 let result:Int=soma(2.2,5);

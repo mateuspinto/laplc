@@ -1,1 +1,5 @@
-let result:Float=4+2.2;
+const x: Float = 5.1;
+const y: Float = 4.2;
+const z: Float = 2.1;
+
+let result:Float=4+x;
