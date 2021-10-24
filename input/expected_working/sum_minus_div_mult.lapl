@@ -1,0 +1,14 @@
+function sumMinusDivMult: (Int, Float, Float) Float = (n, op1, op2) => match
+{
+    n==0:{op1+op2};
+    n==1:{op1-op2};
+    n==2:{op1/op2};
+    n==3:{op1*op2};
+    default:{op1+op2-op1/op2*op1};
+};
+
+let sum: Float = sumMinusDivMult(0, 5.0, 10.0);
+let minus: Float = sumMinusDivMult(1, 10.0, 12.0);
+let div: Float = sumMinusDivMult(2, 8.0, 5.0);
+let mult: Float = sumMinusDivMult(3, 10.0, 2.0);
+let result: Float = sumMinusDivMult(4, 10.0, 2.0);

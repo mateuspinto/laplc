@@ -1,0 +1,8 @@
+function legalAge: (Int) Bool = (n) => match
+{
+    n>=18:{True};
+    default:{False};
+};
+
+let result: Bool = legalAge(18);
+

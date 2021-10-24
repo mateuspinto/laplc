@@ -1,0 +1,3 @@
+function div: (Float, Float) Float = (x, y) => {x/y};
+
+let result: Float = div(div(div(2.0,3.0),div(5.0,7.0)),div(div(2.0,8.0),div(9.0,7.0)));

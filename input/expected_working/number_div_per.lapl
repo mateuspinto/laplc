@@ -1,0 +1,9 @@
+function floatToBool: (Float) Bool = (n) => match
+{
+    n==0.0:{True};
+    default:{False};
+};
+
+function mod: (Float, Float) Float = (x, y) => {x%y};
+
+let result: Bool = floatToBool(mod(9.0, 3.0));

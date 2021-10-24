@@ -1,0 +1,3 @@
+function soma: (Float, Float) Float = (x, y) => {x+y};
+
+let result: Float = soma(soma(2.0,3.0),soma(5.0, 7.0));
